@@ -70,7 +70,7 @@ final class DictationController {
             await process(samples: samples)
             // Let the "Inserted ✓" confirmation breathe before fading out.
             if AppState.shared.status == .inserted {
-                try? await Task.sleep(for: .milliseconds(900))
+                try? await Task.sleep(for: .milliseconds(1400))
             }
             AppState.shared.status = .idle
             DictationHUD.shared.hide()

@@ -14,7 +14,7 @@ final class DictationHUD {
     func show() {
         if panel == nil {
             let hosting = NSHostingView(rootView: HUDView())
-            let size = NSSize(width: 180, height: 44)
+            let size = NSSize(width: 230, height: 48)
             let p = NSPanel(
                 contentRect: NSRect(origin: .zero, size: size),
                 styleMask: [.borderless, .nonactivatingPanel],
@@ -70,6 +70,9 @@ private struct HUDView: View {
             case .recording:
                 PulsingRing()
                 FlowingWave(level: appState.audioLevel)
+                Text("Listening")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.75))
             case .transcribing, .injecting:
                 ProcessingDots()
                 Text(appState.status == .transcribing ? "Transcribing…" : "Inserting…")
@@ -85,7 +88,7 @@ private struct HUDView: View {
             }
         }
         .padding(.horizontal, 16)
-        .frame(width: 190, height: 46)
+        .frame(width: 230, height: 48)
         .background(AuroraGlass())
         .clipShape(Capsule())
         .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
@@ -241,7 +244,7 @@ private struct FlowingWave: View {
                 }
             }
         }
-        .frame(width: 130, height: 32)
+        .frame(width: 96, height: 32)
     }
 }
 
