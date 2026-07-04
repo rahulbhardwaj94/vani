@@ -36,9 +36,9 @@ enum TextInjector {
         let pasted = synthesizeCmdV()
 
         if pasted {
-            // Text is in the target app now — flip the HUD immediately; the
-            // clipboard-restore wait below is invisible housekeeping.
-            AppState.shared.status = .inserted
+            // Text is in the target app now — the pill disappears immediately;
+            // the clipboard-restore wait below is invisible housekeeping.
+            DictationHUD.shared.hide()
             // Give the target app time to read the pasteboard before restoring.
             try? await Task.sleep(for: .milliseconds(300))
             restoreClipboard(pasteboard, items: saved)

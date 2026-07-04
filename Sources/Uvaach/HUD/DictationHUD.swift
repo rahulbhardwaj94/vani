@@ -68,19 +68,15 @@ private struct HUDView: View {
         HStack(spacing: 10) {
             switch appState.status {
             case .recording:
-                PulsingRing()
-                Text("Listening")
-                    .font(.callout)
-                    .foregroundStyle(.white.opacity(0.8))
-            case .transcribing, .injecting:
-                ProcessingDots()
-                Text(appState.status == .transcribing ? "Transcribing…" : "Inserting…")
-                    .font(.callout)
-                    .foregroundStyle(.white.opacity(0.75))
-            case .inserted:
-                Text("Inserted")
+                EqualizerBars(level: appState.audioLevel)
+                Text("Listening…")
                     .font(.callout.weight(.medium))
                     .foregroundStyle(.white.opacity(0.9))
+            case .transcribing, .injecting:
+                ProcessingDots()
+                Text("Transcribing…")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.75))
             case .idle:
                 EmptyView()
             }
@@ -120,25 +116,32 @@ private struct AuroraGlass: View {
     }
 }
 
-/// Soft pulsing ring around a small core dot — the "live" indicator.
-private struct PulsingRing: View {
+/// Equalizer-style music bars: rounded vertical bars bouncing up and down,
+/// each on its own rhythm, driven louder by the mic level.
+private struct EqualizerBars: View {
+    let level: Float
+    private let barCount = 6
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
-            // 0→1 sawtooth every 1.6 s drives the expanding ring.
-            let phase = (time / 1.6).truncatingRemainder(dividingBy: 1)
-            ZStack {
-                Circle()
-                    .strokeBorder(Color.cyan.opacity(0.5 * (1 - phase)), lineWidth: 1.5)
-                    .frame(width: 8 + 14 * phase, height: 8 + 14 * phase)
-                Circle()
-                    .fill(
-                        LinearGradient(colors: [.purple, .cyan],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
-                    .frame(width: 7, height: 7)
+            HStack(spacing: 3) {
+                ForEach(0..<barCount, id: \.self) { i in
+                    // Two offset sines per bar so neighbours never sync up.
+                    let phase = Double(i) * 0.9
+                    let bounce = 0.30
+                        + 0.50 * abs(sin(time * 3.6 + phase))
+                        + 0.20 * abs(sin(time * 2.1 + phase * 1.7))
+                    let drive = 0.35 + min(CGFloat(level) * 10, 1) * 0.65
+                    Capsule()
+                        .fill(
+                            LinearGradient(colors: [.purple, .cyan],
+                                           startPoint: .bottom, endPoint: .top)
+                        )
+                        .frame(width: 3.5, height: max(5, 24 * bounce * drive))
+                }
             }
-            .frame(width: 22, height: 22)
+            .frame(width: 36, height: 26)
         }
     }
 }

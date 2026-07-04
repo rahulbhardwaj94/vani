@@ -68,10 +68,9 @@ final class DictationController {
         AppState.shared.status = .transcribing
         Task {
             await process(samples: samples)
-            // No artificial linger: "Inserted" stays only through the pill's
-            // own fade-out, then the state resets.
+            // Success path already hid the pill at paste time; this covers
+            // failures (empty transcript, injection fallback).
             DictationHUD.shared.hide()
-            try? await Task.sleep(for: .milliseconds(250))
             AppState.shared.status = .idle
         }
     }

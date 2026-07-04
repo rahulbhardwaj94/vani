@@ -38,7 +38,6 @@ enum DictationStatus {
     case recording
     case transcribing
     case injecting
-    case inserted
 
     var symbolName: String {
         switch self {
@@ -46,7 +45,6 @@ enum DictationStatus {
         case .recording: "mic.fill"
         case .transcribing: "waveform"
         case .injecting: "arrow.down.doc"
-        case .inserted: "checkmark.circle"
         }
     }
 
@@ -56,7 +54,6 @@ enum DictationStatus {
         case .recording: "Recording…"
         case .transcribing: "Transcribing…"
         case .injecting: "Inserting text…"
-        case .inserted: "Inserted"
         }
     }
 }
