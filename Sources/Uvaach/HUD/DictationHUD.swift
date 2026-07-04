@@ -97,36 +97,64 @@ private struct FlowingWave: View {
             let time = context.date.timeIntervalSinceReferenceDate
             Canvas { canvas, size in
                 let midY = size.height / 2
-                // Idle breath keeps the wave alive between words.
-                let amplitude = midY * (0.15 + min(CGFloat(level) * 12, 1) * 0.85)
+                // Slow breath so the wave feels alive even in silence.
+                let breath = 0.9 + 0.1 * sin(time * 1.4)
+                let amplitude = midY * (0.18 + min(CGFloat(level) * 12, 1) * 0.82) * breath
 
                 let layers: [(speed: Double, freq: Double, scale: CGFloat, opacity: Double)] = [
-                    (2.4, 1.6, 1.0, 0.9),
-                    (-1.7, 2.3, 0.6, 0.45),
-                    (3.1, 3.1, 0.35, 0.25),
+                    (2.2, 1.4, 1.0, 1.0),
+                    (-1.6, 2.1, 0.62, 0.55),
+                    (2.9, 3.2, 0.34, 0.3),
                 ]
 
                 for layer in layers {
                     var path = Path()
-                    let steps = 64
+                    let steps = 72
                     for i in 0...steps {
                         let x = CGFloat(i) / CGFloat(steps)
-                        // Edge taper: 0 at the ends, 1 in the middle.
-                        let envelope = sin(.pi * x)
-                        let angle = Double(x) * layer.freq * 2 * .pi + time * layer.speed * 2
-                        let y = midY + amplitude * layer.scale * envelope * CGFloat(sin(angle))
+                        // Edge taper plus a slow traveling crest, so peaks
+                        // roll across the pill instead of pulsing in place.
+                        let taper = pow(sin(CGFloat.pi * x), 0.8)
+                        let crest = 0.72 + 0.28 * sin(Double(x) * 2 * Double.pi * 0.8 - time * 1.7)
+                        // Three slightly detuned harmonics per layer make the
+                        // motion organic rather than metronomic.
+                        let base = Double(x) * layer.freq * 2 * .pi
+                        let wave = 0.6 * sin(base + time * layer.speed * 2)
+                            + 0.28 * sin(base * 1.9 + time * layer.speed * 1.3 + 1.2)
+                            + 0.12 * sin(base * 2.8 - time * layer.speed * 0.8 + 2.6)
+                        let y = midY + amplitude * layer.scale * taper * CGFloat(crest) * CGFloat(wave)
                         let point = CGPoint(x: x * size.width, y: y)
                         if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
                     }
+
+                    let gradient = GraphicsContext.Shading.linearGradient(
+                        Gradient(colors: [
+                            .blue.opacity(layer.opacity * 0.75),
+                            .cyan.opacity(layer.opacity),
+                            .blue.opacity(layer.opacity * 0.75),
+                        ]),
+                        startPoint: .zero,
+                        endPoint: CGPoint(x: size.width, y: 0)
+                    )
+
+                    // Glow pass: wide blurred stroke beneath the filament.
+                    var glow = canvas
+                    glow.addFilter(.blur(radius: 4))
+                    glow.stroke(
+                        path,
+                        with: gradient,
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round)
+                    )
+                    // Core filament.
                     canvas.stroke(
                         path,
-                        with: .color(.blue.opacity(layer.opacity)),
-                        style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+                        with: gradient,
+                        style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round)
                     )
                 }
             }
         }
-        .frame(width: 130, height: 30)
+        .frame(width: 130, height: 32)
     }
 }
 
@@ -134,12 +162,15 @@ private struct ProcessingDots: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 ForEach(0..<3, id: \.self) { i in
+                    let pulse = 0.5 + 0.5 * sin(time * 5 - Double(i) * 0.9)
                     Circle()
-                        .fill(.tint)
+                        .fill(.cyan)
                         .frame(width: 6, height: 6)
-                        .opacity(0.35 + 0.65 * (0.5 + 0.5 * sin(time * 6 - Double(i) * 0.9)))
+                        .opacity(0.35 + 0.65 * pulse)
+                        .shadow(color: .cyan.opacity(0.8 * pulse), radius: 4)
+                        .scaleEffect(0.85 + 0.3 * pulse)
                 }
             }
         }
