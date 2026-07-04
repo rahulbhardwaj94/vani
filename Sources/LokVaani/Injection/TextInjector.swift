@@ -96,7 +96,7 @@ enum TextInjector {
 
     private static func notify(_ message: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Uvaach"
+        content.title = "LokVaani"
         content.body = message
         let request = UNNotificationRequest(
             identifier: UUID().uuidString, content: content, trigger: nil

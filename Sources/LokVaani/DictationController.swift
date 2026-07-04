@@ -48,7 +48,7 @@ final class DictationController {
             DictationHUD.shared.show()
             NSSound(named: "Pop")?.play()
         } catch {
-            NSLog("Uvaach: failed to start recording: \(error.localizedDescription)")
+            NSLog("LokVaani: failed to start recording: \(error.localizedDescription)")
         }
     }
 
@@ -89,7 +89,7 @@ final class DictationController {
                 language: settings.language
             )
         } catch {
-            NSLog("Uvaach: transcription failed: %@", error.localizedDescription)
+            NSLog("LokVaani: transcription failed: %@", error.localizedDescription)
             return
         }
         guard !raw.isEmpty else { return }
@@ -102,7 +102,7 @@ final class DictationController {
             text = await OllamaClient().cleanup(text, model: settings.ollamaModel)
         }
         // Vocabulary corrections run last so they override both Whisper and
-        // the LLM (exact casing like "Uvaach" survives).
+        // the LLM (exact casing like "LokVaani" survives).
         text = VocabularyStore.shared.apply(to: text)
         guard !text.isEmpty else { return }
 
@@ -115,7 +115,7 @@ final class DictationController {
         )
         _ = await TextInjector.insert(text) // hides the HUD itself at paste time
 
-        NSLog("Uvaach: dictation done in %.2fs — \"%@\"",
+        NSLog("LokVaani: dictation done in %.2fs — \"%@\"",
               Date().timeIntervalSince(started), text)
     }
 }

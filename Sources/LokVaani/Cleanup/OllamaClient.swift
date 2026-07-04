@@ -8,7 +8,7 @@ struct OllamaClient {
     /// setups — remote host, custom port, slower hardware.
     var baseURL: URL = {
         let env = ProcessInfo.processInfo.environment
-        if let raw = env["UVAACH_OLLAMA_URL"], let url = URL(string: raw) {
+        if let raw = env["LOKVAANI_OLLAMA_URL"], let url = URL(string: raw) {
             return url
         }
         return URL(string: "http://localhost:11434")!
@@ -16,7 +16,7 @@ struct OllamaClient {
 
     var timeout: TimeInterval = {
         let env = ProcessInfo.processInfo.environment
-        if let raw = env["UVAACH_OLLAMA_TIMEOUT"], let value = TimeInterval(raw), value > 0 {
+        if let raw = env["LOKVAANI_OLLAMA_TIMEOUT"], let value = TimeInterval(raw), value > 0 {
             return value
         }
         return 6
@@ -72,7 +72,7 @@ struct OllamaClient {
 
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                NSLog("Uvaach: Ollama returned non-200, using rule-based cleanup")
+                NSLog("LokVaani: Ollama returned non-200, using rule-based cleanup")
                 return text
             }
             let cleaned = try JSONDecoder().decode(GenerateResponse.self, from: data)
@@ -87,7 +87,7 @@ struct OllamaClient {
             else { return text }
             return cleaned
         } catch {
-            NSLog("Uvaach: Ollama cleanup failed (%@), using rule-based cleanup",
+            NSLog("LokVaani: Ollama cleanup failed (%@), using rule-based cleanup",
                   error.localizedDescription)
             return text
         }

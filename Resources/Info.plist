@@ -5,15 +5,15 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>Uvaach</string>
+    <string>LokVaani</string>
     <key>CFBundleIdentifier</key>
-    <string>com.rahulbhardwaj.uvaach</string>
+    <string>com.rahulbhardwaj.lokvaani</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Uvaach</string>
+    <string>LokVaani</string>
     <key>CFBundleDisplayName</key>
-    <string>Uvaach</string>
+    <string>LokVaani</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -25,7 +25,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Uvaach records your voice while the dictation hotkey is active so it can transcribe it on-device.</string>
+    <string>LokVaani records your voice while the dictation hotkey is active so it can transcribe it on-device.</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Rahul Bhardwaj</string>
 </dict>

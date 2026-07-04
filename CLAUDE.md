@@ -1,4 +1,4 @@
-# Uvaach
+# LokVaani
 
 Fully local, offline dictation app for macOS (Apple Silicon): hold Right Option
 (or ⌥⌘D toggle) → speak → on-device Whisper transcription → optional local LLM
@@ -16,14 +16,14 @@ cleanup → text pasted into the focused app.
 ## Build & run
 
 ```sh
-./scripts/setup-signing.sh   # one-time: creates the "Uvaach Dev" signing identity
-./scripts/build-app.sh       # release build → build/Uvaach.app (signed)
-open build/Uvaach.app
+./scripts/setup-signing.sh   # one-time: creates the "LokVaani Dev" signing identity
+./scripts/build-app.sh       # release build → build/LokVaani.app (signed)
+open build/LokVaani.app
 ```
 
 `swift build` works for compile checks. Always launch via the signed .app —
 TCC permissions (Microphone / Accessibility / Input Monitoring) are tied to the
-"Uvaach Dev" signing identity and persist across rebuilds only when signed.
+"LokVaani Dev" signing identity and persist across rebuilds only when signed.
 Deleting/recreating that identity resets all granted permissions.
 
 ## Gotchas
@@ -38,5 +38,5 @@ Deleting/recreating that identity resets all granted permissions.
   Option, keycode 61) — needs Input Monitoring, not Accessibility.
 - Ollama cleanup must never block dictation: any failure falls back to the
   rule-based output silently.
-- Ollama URL/timeout are overridable via UVAACH_OLLAMA_URL / UVAACH_OLLAMA_TIMEOUT
+- Ollama URL/timeout are overridable via LOKVAANI_OLLAMA_URL / LOKVAANI_OLLAMA_TIMEOUT
   env vars (see .env.example); defaults are localhost:11434 / 6 s.

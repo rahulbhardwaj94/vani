@@ -1,23 +1,23 @@
 #!/bin/bash
-# Build Uvaach.app without Xcode: swift build → assemble bundle → codesign.
+# Build LokVaani.app without Xcode: swift build → assemble bundle → codesign.
 # Usage: ./scripts/build-app.sh [debug|release]   (default: release)
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
-IDENTITY="Uvaach Dev"
-APP="build/Uvaach.app"
+IDENTITY="LokVaani Dev"
+APP="build/LokVaani.app"
 
 echo "==> swift build -c $CONFIG"
 swift build -c "$CONFIG"
 
-BIN="$(swift build -c "$CONFIG" --show-bin-path)/Uvaach"
+BIN="$(swift build -c "$CONFIG" --show-bin-path)/LokVaani"
 
 echo "==> Assembling $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/Uvaach"
+cp "$BIN" "$APP/Contents/MacOS/LokVaani"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 
 # Bundle any SwiftPM resource bundles produced by dependencies.
@@ -27,7 +27,7 @@ find "$BINDIR" -maxdepth 1 -name "*.bundle" -exec cp -R {} "$APP/Contents/Resour
 echo "==> Code signing"
 if security find-identity -v -p codesigning | grep -q "$IDENTITY"; then
     codesign --force --deep --sign "$IDENTITY" \
-        --identifier com.rahulbhardwaj.uvaach "$APP"
+        --identifier com.rahulbhardwaj.lokvaani "$APP"
 else
     echo "WARNING: signing identity '$IDENTITY' not found — falling back to ad-hoc."
     echo "         TCC permissions will RESET on every rebuild."

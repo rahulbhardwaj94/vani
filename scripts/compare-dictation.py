@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Side-by-side dictation shootout: Uvaach vs Wispr Flow (or any two tools).
+Side-by-side dictation shootout: LokVaani vs Wispr Flow (or any two tools).
 
 How it works:
   1. The script shows you a reference passage. Read it aloud ONCE per tool,
@@ -16,7 +16,7 @@ Run:  python3 scripts/compare-dictation.py
 import datetime
 import re
 
-TOOLS = ["Uvaach", "Wispr Flow"]
+TOOLS = ["LokVaani", "Wispr Flow"]
 
 PASSAGES = [
     ("Fillers + short command",
@@ -51,7 +51,7 @@ PASSAGES = [
      "I'm using dev containers with node_modules mounted as a volume, "
      "running npm and pnpm commands, plus Ollama and WhisperKit on my "
      "MacBook.",
-     "Tests jargon. If Uvaach mishears a term, add it in "
+     "Tests jargon. If LokVaani mishears a term, add it in "
      "History & Vocabulary and rerun — that's the feature working."),
 ]
 

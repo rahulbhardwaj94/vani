@@ -9,7 +9,7 @@ enum PermissionState {
     case notDetermined
 }
 
-/// Checks and requests the three TCC permissions Uvaach needs.
+/// Checks and requests the three TCC permissions LokVaani needs.
 /// None of these can be granted programmatically — for Accessibility and
 /// Input Monitoring the user must flip the switch in System Settings, so we
 /// deep-link them there and re-check on a timer while onboarding is visible.

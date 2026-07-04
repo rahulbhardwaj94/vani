@@ -51,7 +51,7 @@ final class HotkeyManager {
             },
             userInfo: selfPtr
         ) else {
-            NSLog("Uvaach: could not create event tap (Input Monitoring not granted?)")
+            NSLog("LokVaani: could not create event tap (Input Monitoring not granted?)")
             return
         }
 
