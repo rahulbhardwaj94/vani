@@ -1,7 +1,7 @@
 import Foundation
 
 /// Persistent dictation history, newest first. Stored as JSON in
-/// ~/Library/Application Support/rbFlow/history.json, capped at 500 entries.
+/// ~/Library/Application Support/Uvaach/history.json, capped at 500 entries.
 @MainActor
 final class TranscriptStore: ObservableObject {
     static let shared = TranscriptStore()
@@ -20,7 +20,7 @@ final class TranscriptStore: ObservableObject {
 
     private init() {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appending(path: "rbFlow")
+            .appending(path: "Uvaach")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         fileURL = dir.appending(path: "history.json")
         entries = (try? JSONDecoder().decode([Entry].self, from: Data(contentsOf: fileURL))) ?? []

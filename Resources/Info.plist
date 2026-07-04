@@ -5,15 +5,15 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>rbFlow</string>
+    <string>Uvaach</string>
     <key>CFBundleIdentifier</key>
-    <string>com.rahulbhardwaj.rbflow</string>
+    <string>com.rahulbhardwaj.uvaach</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>rbFlow</string>
+    <string>Uvaach</string>
     <key>CFBundleDisplayName</key>
-    <string>rbFlow</string>
+    <string>Uvaach</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -25,7 +25,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>rbFlow records your voice while the dictation hotkey is active so it can transcribe it on-device.</string>
+    <string>Uvaach records your voice while the dictation hotkey is active so it can transcribe it on-device.</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Rahul Bhardwaj</string>
 </dict>

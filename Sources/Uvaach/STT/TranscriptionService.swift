@@ -25,7 +25,7 @@ actor TranscriptionService {
 
         do {
             state = .downloading
-            NSLog("rbFlow: loading Whisper model '%@'…", model)
+            NSLog("Uvaach: loading Whisper model '%@'…", model)
             let config = WhisperKitConfig(model: model)
             config.prewarm = true
             state = .loading
@@ -33,10 +33,10 @@ actor TranscriptionService {
             whisperKit = kit
             loadedModel = model
             state = .ready
-            NSLog("rbFlow: Whisper model ready")
+            NSLog("Uvaach: Whisper model ready")
         } catch {
             state = .failed(error.localizedDescription)
-            NSLog("rbFlow: Whisper load failed: %@", error.localizedDescription)
+            NSLog("Uvaach: Whisper load failed: %@", error.localizedDescription)
         }
     }
 
@@ -46,7 +46,7 @@ actor TranscriptionService {
             await warmUp(model: model)
         }
         guard let whisperKit, state == .ready else {
-            throw NSError(domain: "rbFlow.stt", code: 1, userInfo: [
+            throw NSError(domain: "Uvaach.stt", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "Speech model is not loaded."
             ])
         }

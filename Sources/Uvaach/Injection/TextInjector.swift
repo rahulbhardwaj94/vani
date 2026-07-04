@@ -93,7 +93,7 @@ enum TextInjector {
 
     private static func notify(_ message: String) {
         let content = UNMutableNotificationContent()
-        content.title = "rbFlow"
+        content.title = "Uvaach"
         content.body = message
         let request = UNNotificationRequest(
             identifier: UUID().uuidString, content: content, trigger: nil

@@ -1,5 +1,15 @@
+# Build artifacts
 .build/
 build/
+.swiftpm/
+
+# Environment — copy .env.example to .env, never commit real values
+.env
+.env.local
+
+# macOS / editors
 .DS_Store
 *.xcodeproj
-.swiftpm/
+
+# Claude Code local settings
+.claude/settings.local.json

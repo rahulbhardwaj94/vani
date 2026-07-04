@@ -82,7 +82,7 @@ final class SettingsWindow {
         if window == nil {
             let hosting = NSHostingController(rootView: SettingsView())
             let win = NSWindow(contentViewController: hosting)
-            win.title = "rbFlow Settings"
+            win.title = "Uvaach Settings"
             win.styleMask = [.titled, .closable]
             win.isReleasedWhenClosed = false
             win.center()

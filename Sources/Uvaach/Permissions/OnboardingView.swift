@@ -5,9 +5,9 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Welcome to rbFlow")
+            Text("Welcome to Uvaach")
                 .font(.title2.bold())
-            Text("rbFlow needs three permissions to record your voice, watch the dictation hotkey, and type the transcribed text into other apps. Everything runs on-device — nothing leaves your Mac.")
+            Text("Uvaach needs three permissions to record your voice, watch the dictation hotkey, and type the transcribed text into other apps. Everything runs on-device — nothing leaves your Mac.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -19,7 +19,7 @@ struct OnboardingView: View {
             )
             PermissionRow(
                 title: "Accessibility",
-                detail: "Lets rbFlow paste text into the focused app.",
+                detail: "Lets Uvaach paste text into the focused app.",
                 state: permissions.accessibility,
                 action: { permissions.requestAccessibility() }
             )
@@ -85,7 +85,7 @@ final class OnboardingWindow {
         if window == nil {
             let hosting = NSHostingController(rootView: OnboardingView())
             let win = NSWindow(contentViewController: hosting)
-            win.title = "rbFlow Setup"
+            win.title = "Uvaach Setup"
             win.styleMask = [.titled, .closable]
             win.isReleasedWhenClosed = false
             win.center()

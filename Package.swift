@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "rbFlow",
+    name: "Uvaach",
     platforms: [.macOS(.v14)],
     dependencies: [
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", from: "1.0.0"),
@@ -12,12 +12,12 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "rbFlow",
+            name: "Uvaach",
             dependencies: [
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
-            path: "Sources/rbFlow",
+            path: "Sources/Uvaach",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

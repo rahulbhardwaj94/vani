@@ -1,12 +1,12 @@
 #!/bin/bash
-# One-time setup: create a self-signed code-signing certificate ("rbFlow Dev")
+# One-time setup: create a self-signed code-signing certificate ("Uvaach Dev")
 # in the login keychain. Signing every build with this stable identity makes
 # macOS TCC permissions (Microphone / Accessibility / Input Monitoring)
 # persist across rebuilds. Re-running this script and creating a NEW identity
 # resets those permissions.
 set -euo pipefail
 
-IDENTITY="rbFlow Dev"
+IDENTITY="Uvaach Dev"
 
 if security find-identity -v -p codesigning | grep -q "$IDENTITY"; then
     echo "Signing identity '$IDENTITY' already exists — nothing to do."
@@ -28,12 +28,12 @@ openssl req -x509 -newkey rsa:2048 -nodes \
 # `security import` cannot parse ("MAC verification failed").
 openssl pkcs12 -export -legacy \
     -inkey "$WORKDIR/key.pem" -in "$WORKDIR/cert.pem" \
-    -out "$WORKDIR/rbflow.p12" -passout pass:rbflow
+    -out "$WORKDIR/uvaach.p12" -passout pass:uvaach
 
 echo "Importing into login keychain…"
-security import "$WORKDIR/rbflow.p12" \
+security import "$WORKDIR/uvaach.p12" \
     -k "$HOME/Library/Keychains/login.keychain-db" \
-    -P rbflow -T /usr/bin/codesign
+    -P uvaach -T /usr/bin/codesign
 
 echo "Trusting certificate for code signing (macOS will show an authorization dialog)…"
 security add-trusted-cert -r trustRoot -p codeSign \

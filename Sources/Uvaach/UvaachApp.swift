@@ -2,7 +2,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct RBFlowApp: App {
+struct UvaachApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState.shared
 
@@ -74,7 +74,7 @@ struct MenuContent: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        Text("rbFlow — \(appState.status.label)")
+        Text("Uvaach — \(appState.status.label)")
         Divider()
         Button("History & Vocabulary…") {
             DashboardWindow.shared.show()
@@ -86,7 +86,7 @@ struct MenuContent: View {
             OnboardingWindow.shared.show()
         }
         Divider()
-        Button("Quit rbFlow") {
+        Button("Quit Uvaach") {
             NSApp.terminate(nil)
         }
         .keyboardShortcut("q")

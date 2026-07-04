@@ -4,8 +4,23 @@ import Foundation
 /// timeout, empty output) falls back to the input text — dictation must never
 /// block on Ollama.
 struct OllamaClient {
-    var baseURL = URL(string: "http://localhost:11434")!
-    var timeout: TimeInterval = 6
+    /// Overridable via environment (see .env.example) for non-default Ollama
+    /// setups — remote host, custom port, slower hardware.
+    var baseURL: URL = {
+        let env = ProcessInfo.processInfo.environment
+        if let raw = env["UVAACH_OLLAMA_URL"], let url = URL(string: raw) {
+            return url
+        }
+        return URL(string: "http://localhost:11434")!
+    }()
+
+    var timeout: TimeInterval = {
+        let env = ProcessInfo.processInfo.environment
+        if let raw = env["UVAACH_OLLAMA_TIMEOUT"], let value = TimeInterval(raw), value > 0 {
+            return value
+        }
+        return 6
+    }()
 
     private static let systemPrompt = """
     You are a dictation post-processor, not an assistant. The user's message is \
@@ -57,7 +72,7 @@ struct OllamaClient {
 
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                NSLog("rbFlow: Ollama returned non-200, using rule-based cleanup")
+                NSLog("Uvaach: Ollama returned non-200, using rule-based cleanup")
                 return text
             }
             let cleaned = try JSONDecoder().decode(GenerateResponse.self, from: data)
@@ -72,7 +87,7 @@ struct OllamaClient {
             else { return text }
             return cleaned
         } catch {
-            NSLog("rbFlow: Ollama cleanup failed (%@), using rule-based cleanup",
+            NSLog("Uvaach: Ollama cleanup failed (%@), using rule-based cleanup",
                   error.localizedDescription)
             return text
         }

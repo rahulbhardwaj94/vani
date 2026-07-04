@@ -35,7 +35,7 @@ final class AudioRecorder {
         let input = engine.inputNode
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0 else {
-            throw NSError(domain: "rbFlow.audio", code: 1, userInfo: [
+            throw NSError(domain: "Uvaach.audio", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "No audio input device available."
             ])
         }

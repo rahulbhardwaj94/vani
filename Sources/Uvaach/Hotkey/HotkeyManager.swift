@@ -51,7 +51,7 @@ final class HotkeyManager {
             },
             userInfo: selfPtr
         ) else {
-            NSLog("rbFlow: could not create event tap (Input Monitoring not granted?)")
+            NSLog("Uvaach: could not create event tap (Input Monitoring not granted?)")
             return
         }
 
