@@ -24,6 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !PermissionsManager.shared.allGranted {
             OnboardingWindow.shared.show()
         }
+
+        DictationController.shared.start()
     }
 }
 
