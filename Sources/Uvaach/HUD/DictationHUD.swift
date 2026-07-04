@@ -68,21 +68,97 @@ private struct HUDView: View {
         HStack(spacing: 10) {
             switch appState.status {
             case .recording:
+                PulsingRing()
                 FlowingWave(level: appState.audioLevel)
             case .transcribing, .injecting:
                 ProcessingDots()
                 Text(appState.status == .transcribing ? "Transcribing…" : "Inserting…")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.75))
+            case .inserted:
+                InsertedBadge()
+                Text("Inserted")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.9))
             case .idle:
                 EmptyView()
             }
         }
         .padding(.horizontal, 16)
-        .frame(width: 180, height: 44)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.quaternary))
+        .frame(width: 190, height: 46)
+        .background(AuroraGlass())
+        .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+        .environment(\.colorScheme, .dark)
         .tint(.blue)
+    }
+}
+
+/// "Aurora Glass": near-black frosted glass with faint violet/indigo auroras
+/// drifting inside the pill. Premium, cinematic, and dark in any wallpaper.
+private struct AuroraGlass: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 12.0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                Color.black.opacity(0.62)
+                // Two slow-drifting aurora blooms.
+                RadialGradient(
+                    colors: [Color.purple.opacity(0.32), .clear],
+                    center: UnitPoint(x: 0.25 + 0.1 * sin(time * 0.4), y: 0.1),
+                    startRadius: 0, endRadius: 90
+                )
+                RadialGradient(
+                    colors: [Color.indigo.opacity(0.28), .clear],
+                    center: UnitPoint(x: 0.8 + 0.08 * sin(time * 0.3 + 2), y: 0.9),
+                    startRadius: 0, endRadius: 100
+                )
+            }
+        }
+    }
+}
+
+/// Soft pulsing ring around a small core dot — the "live" indicator.
+private struct PulsingRing: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            // 0→1 sawtooth every 1.6 s drives the expanding ring.
+            let phase = (time / 1.6).truncatingRemainder(dividingBy: 1)
+            ZStack {
+                Circle()
+                    .strokeBorder(Color.cyan.opacity(0.5 * (1 - phase)), lineWidth: 1.5)
+                    .frame(width: 8 + 14 * phase, height: 8 + 14 * phase)
+                Circle()
+                    .fill(
+                        LinearGradient(colors: [.purple, .cyan],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    .frame(width: 7, height: 7)
+            }
+            .frame(width: 22, height: 22)
+        }
+    }
+}
+
+/// Checkmark badge for the "Inserted" confirmation, ringed like the concept.
+private struct InsertedBadge: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+                .frame(width: 22, height: 22)
+            Circle()
+                .fill(
+                    LinearGradient(colors: [.indigo.opacity(0.9), .purple.opacity(0.7)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .frame(width: 18, height: 18)
+            Image(systemName: "checkmark")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.white)
+        }
     }
 }
 
@@ -127,11 +203,13 @@ private struct FlowingWave: View {
                         if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
                     }
 
+                    // Iridescent aurora sweep: violet → blue → cyan → violet.
                     let gradient = GraphicsContext.Shading.linearGradient(
                         Gradient(colors: [
-                            .blue.opacity(layer.opacity * 0.75),
+                            .purple.opacity(layer.opacity * 0.8),
+                            .blue.opacity(layer.opacity * 0.9),
                             .cyan.opacity(layer.opacity),
-                            .blue.opacity(layer.opacity * 0.75),
+                            .purple.opacity(layer.opacity * 0.7),
                         ]),
                         startPoint: .zero,
                         endPoint: CGPoint(x: size.width, y: 0)
@@ -140,9 +218,9 @@ private struct FlowingWave: View {
                     // Soft halo just behind the filament — present, not neon.
                     let haloGradient = GraphicsContext.Shading.linearGradient(
                         Gradient(colors: [
-                            .blue.opacity(layer.opacity * 0.25),
+                            .purple.opacity(layer.opacity * 0.25),
                             .cyan.opacity(layer.opacity * 0.35),
-                            .blue.opacity(layer.opacity * 0.25),
+                            .purple.opacity(layer.opacity * 0.25),
                         ]),
                         startPoint: .zero,
                         endPoint: CGPoint(x: size.width, y: 0)

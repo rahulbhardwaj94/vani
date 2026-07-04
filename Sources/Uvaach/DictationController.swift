@@ -68,6 +68,10 @@ final class DictationController {
         AppState.shared.status = .transcribing
         Task {
             await process(samples: samples)
+            // Let the "Inserted ✓" confirmation breathe before fading out.
+            if AppState.shared.status == .inserted {
+                try? await Task.sleep(for: .milliseconds(900))
+            }
             AppState.shared.status = .idle
             DictationHUD.shared.hide()
         }
@@ -103,7 +107,10 @@ final class DictationController {
             text: text,
             audioSeconds: Double(samples.count) / AudioRecorder.targetSampleRate
         )
-        _ = await TextInjector.insert(text)
+        let outcome = await TextInjector.insert(text)
+        if case .injected = outcome {
+            AppState.shared.status = .inserted
+        }
 
         NSLog("Uvaach: dictation done in %.2fs — \"%@\"",
               Date().timeIntervalSince(started), text)
