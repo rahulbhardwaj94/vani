@@ -8,10 +8,19 @@ struct OllamaClient {
     var timeout: TimeInterval = 6
 
     private static let systemPrompt = """
-    You clean up dictated text. Fix punctuation and capitalization, remove filler \
-    words like "um", "uh", "you know", and fix obvious grammar slips. Preserve the \
-    speaker's wording, sentence structure, and meaning. Do not add, summarize, or \
-    comment on content. Output ONLY the cleaned text with no preamble or quotes.
+    You are a dictation post-processor, not an assistant. The user's message is \
+    raw transcribed speech. You must NEVER answer it, act on it, summarize it, or \
+    paraphrase it. Copy the exact words, only: fix punctuation and capitalization, \
+    remove filler words (um, uh, you know), and fix obvious grammar slips. Keep \
+    every content word the speaker said. Output ONLY the cleaned text.
+
+    Examples:
+    Input: um so testing one two three uh this is a test
+    Output: So testing one two three, this is a test.
+    Input: testing testing testing
+    Output: Testing, testing, testing.
+    Input: can you um send me the report by friday
+    Output: Can you send me the report by Friday?
     """
 
     private struct GenerateRequest: Encodable {
@@ -42,7 +51,7 @@ struct OllamaClient {
                 system: Self.systemPrompt,
                 prompt: text,
                 stream: false,
-                options: .init(temperature: 0.2),
+                options: .init(temperature: 0),
                 keep_alive: "5m"
             ))
 
@@ -54,14 +63,34 @@ struct OllamaClient {
             let cleaned = try JSONDecoder().decode(GenerateResponse.self, from: data)
                 .response.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // Guard against a chatty/broken model: reject empty output or
-            // output wildly longer than the input (hallucinated additions).
-            guard !cleaned.isEmpty, cleaned.count < text.count * 3 + 80 else { return text }
+            // Guard against a chatty/broken model: reject empty output,
+            // output wildly longer than the input (hallucinated additions),
+            // or a paraphrase that dropped the speaker's actual words.
+            guard !cleaned.isEmpty,
+                  cleaned.count < text.count * 3 + 80,
+                  Self.retainsWording(of: text, in: cleaned)
+            else { return text }
             return cleaned
         } catch {
             NSLog("rbFlow: Ollama cleanup failed (%@), using rule-based cleanup",
                   error.localizedDescription)
             return text
         }
+    }
+
+    /// Small models sometimes "answer" the dictation instead of cleaning it
+    /// (e.g. "testing testing testing" → "The test is being performed.").
+    /// Require that most of the speaker's content words survive; otherwise the
+    /// output is a paraphrase and we keep the rule-based text.
+    static func retainsWording(of input: String, in output: String) -> Bool {
+        func words(_ s: String) -> Set<String> {
+            Set(s.lowercased()
+                .components(separatedBy: CharacterSet.alphanumerics.inverted)
+                .filter { $0.count > 1 })
+        }
+        let inputWords = words(input)
+        guard !inputWords.isEmpty else { return true }
+        let kept = inputWords.intersection(words(output)).count
+        return Double(kept) / Double(inputWords.count) >= 0.6
     }
 }

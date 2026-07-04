@@ -36,8 +36,16 @@ final class DictationController {
             return
         }
         do {
+            recorder.onLevel = { level in
+                Task { @MainActor in
+                    // Smooth the meter so the bars don't flicker.
+                    let previous = AppState.shared.audioLevel
+                    AppState.shared.audioLevel = previous * 0.6 + level * 0.4
+                }
+            }
             try recorder.start()
             AppState.shared.status = .recording
+            DictationHUD.shared.show()
             NSSound(named: "Pop")?.play()
         } catch {
             NSLog("rbFlow: failed to start recording: \(error.localizedDescription)")
@@ -49,8 +57,11 @@ final class DictationController {
         let samples = recorder.stop()
         NSSound(named: "Bottle")?.play()
 
+        AppState.shared.audioLevel = 0
+
         guard samples.count >= minimumSamples else {
             AppState.shared.status = .idle
+            DictationHUD.shared.hide()
             return
         }
 
@@ -58,6 +69,7 @@ final class DictationController {
         Task {
             await process(samples: samples)
             AppState.shared.status = .idle
+            DictationHUD.shared.hide()
         }
     }
 

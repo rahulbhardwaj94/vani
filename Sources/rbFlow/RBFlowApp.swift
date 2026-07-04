@@ -64,6 +64,8 @@ final class AppState: ObservableObject {
 
     @Published var status: DictationStatus = .idle
     @Published var lastTranscript: String?
+    /// Mic RMS level while recording, 0…~0.3 typical speech. Drives the HUD bars.
+    @Published var audioLevel: Float = 0
 
     private init() {}
 }

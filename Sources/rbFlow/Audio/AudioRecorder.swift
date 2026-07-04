@@ -13,6 +13,10 @@ final class AudioRecorder {
     private var samples: [Float] = []
     private(set) var isRecording = false
 
+    /// Called from the audio tap thread with the RMS level of each buffer
+    /// (~10–20 Hz). Keep the handler cheap; hop actors inside it if needed.
+    var onLevel: ((Float) -> Void)?
+
     private lazy var targetFormat = AVAudioFormat(
         commonFormat: .pcmFormatFloat32,
         sampleRate: Self.targetSampleRate,
@@ -83,5 +87,12 @@ final class AudioRecorder {
         lock.lock()
         samples.append(contentsOf: UnsafeBufferPointer(start: channel, count: Int(out.frameLength)))
         lock.unlock()
+
+        if let onLevel {
+            let count = Int(out.frameLength)
+            var sum: Float = 0
+            for i in 0..<count { sum += channel[i] * channel[i] }
+            onLevel(sqrt(sum / Float(count)))
+        }
     }
 }
