@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct RBFlowApp: App {
@@ -26,6 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         DictationController.shared.start()
+
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in }
     }
 }
 
@@ -71,6 +74,9 @@ struct MenuContent: View {
     var body: some View {
         Text("rbFlow — \(appState.status.label)")
         Divider()
+        Button("Settings…") {
+            SettingsWindow.shared.show()
+        }
         Button("Setup & Permissions…") {
             OnboardingWindow.shared.show()
         }
