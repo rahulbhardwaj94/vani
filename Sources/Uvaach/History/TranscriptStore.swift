@@ -11,6 +11,9 @@ final class TranscriptStore: ObservableObject {
         let id: UUID
         let date: Date
         let text: String
+        /// What Whisper actually heard, before cleanup. Optional so history
+        /// saved by older versions still decodes.
+        let raw: String?
         let audioSeconds: Double
     }
 
@@ -26,8 +29,11 @@ final class TranscriptStore: ObservableObject {
         entries = (try? JSONDecoder().decode([Entry].self, from: Data(contentsOf: fileURL))) ?? []
     }
 
-    func add(text: String, audioSeconds: Double) {
-        entries.insert(Entry(id: UUID(), date: .now, text: text, audioSeconds: audioSeconds), at: 0)
+    func add(text: String, raw: String? = nil, audioSeconds: Double) {
+        entries.insert(
+            Entry(id: UUID(), date: .now, text: text, raw: raw, audioSeconds: audioSeconds),
+            at: 0
+        )
         if entries.count > Self.maxEntries {
             entries.removeLast(entries.count - Self.maxEntries)
         }

@@ -18,6 +18,11 @@ struct SettingsView: View {
             }
 
             Section("Speech to text") {
+                Picker("Spoken language", selection: $settings.language) {
+                    ForEach(SettingsStore.languages, id: \.code) { lang in
+                        Text(lang.label).tag(lang.code)
+                    }
+                }
                 Picker("Whisper model", selection: $settings.whisperModel) {
                     Text("Large v3 Turbo — best accuracy (~1.6 GB)")
                         .tag(SettingsStore.whisperModels[0])

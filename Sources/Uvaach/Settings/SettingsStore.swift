@@ -13,8 +13,23 @@ final class SettingsStore: ObservableObject {
         "openai_whisper-base",
     ]
 
+    /// Spoken-language options: Whisper language codes, or "auto" to detect
+    /// per dictation (large-v3-turbo supports 99 languages including Hindi).
+    static let languages: [(code: String, label: String)] = [
+        ("auto", "Auto-detect"),
+        ("en", "English"),
+        ("hi", "Hindi (हिन्दी)"),
+        ("es", "Spanish"),
+        ("fr", "French"),
+        ("de", "German"),
+        ("ja", "Japanese"),
+    ]
+
     @Published var whisperModel: String {
         didSet { UserDefaults.standard.set(whisperModel, forKey: "whisperModel") }
+    }
+    @Published var language: String {
+        didSet { UserDefaults.standard.set(language, forKey: "language") }
     }
     @Published var llmCleanupEnabled: Bool {
         didSet { UserDefaults.standard.set(llmCleanupEnabled, forKey: "llmCleanupEnabled") }
@@ -26,6 +41,7 @@ final class SettingsStore: ObservableObject {
     private init() {
         let defaults = UserDefaults.standard
         whisperModel = defaults.string(forKey: "whisperModel") ?? Self.whisperModels[0]
+        language = defaults.string(forKey: "language") ?? "auto"
         // Default OFF: A/B testing vs Wispr Flow showed the 1B cleanup model
         // drops words ("I think"), swaps meaning ("and"→"or"), and stutters —
         // while the LLM-free path scored 0% WER on long-form. Rule-based

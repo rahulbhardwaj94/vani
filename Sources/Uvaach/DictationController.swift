@@ -85,7 +85,8 @@ final class DictationController {
         let raw: String
         do {
             raw = try await TranscriptionService.shared.transcribe(
-                samples: samples, model: settings.whisperModel
+                samples: samples, model: settings.whisperModel,
+                language: settings.language
             )
         } catch {
             NSLog("Uvaach: transcription failed: %@", error.localizedDescription)
@@ -109,9 +110,10 @@ final class DictationController {
         AppState.shared.lastTranscript = text
         TranscriptStore.shared.add(
             text: text,
+            raw: raw,
             audioSeconds: Double(samples.count) / AudioRecorder.targetSampleRate
         )
-        _ = await TextInjector.insert(text) // sets .inserted itself on success
+        _ = await TextInjector.insert(text) // hides the HUD itself at paste time
 
         NSLog("Uvaach: dictation done in %.2fs — \"%@\"",
               Date().timeIntervalSince(started), text)

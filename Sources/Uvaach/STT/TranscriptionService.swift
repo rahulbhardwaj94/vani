@@ -41,7 +41,10 @@ actor TranscriptionService {
     }
 
     /// Transcribes 16 kHz mono Float32 samples; returns the raw transcript.
-    func transcribe(samples: [Float], model: String) async throws -> String {
+    /// `language` is a Whisper code ("hi", "en", ...) or "auto" to detect.
+    /// WhisperKit's defaults force English (usePrefillPrompt: true prefills
+    /// "en" unless told otherwise), so we must pass options explicitly.
+    func transcribe(samples: [Float], model: String, language: String) async throws -> String {
         if state != .ready || loadedModel != model {
             await warmUp(model: model)
         }
@@ -51,7 +54,13 @@ actor TranscriptionService {
             ])
         }
 
-        let results = try await whisperKit.transcribe(audioArray: samples)
+        let options = DecodingOptions(
+            task: .transcribe,
+            language: language == "auto" ? nil : language,
+            usePrefillPrompt: true,
+            detectLanguage: language == "auto"
+        )
+        let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: options)
         return results.map(\.text).joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }

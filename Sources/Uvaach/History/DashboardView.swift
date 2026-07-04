@@ -61,6 +61,13 @@ private struct HistoryRow: View {
             Text(entry.text)
                 .textSelection(.enabled)
                 .lineLimit(4)
+            if let raw = entry.raw, raw != entry.text {
+                Text("Heard: \(raw)")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .textSelection(.enabled)
+                    .lineLimit(2)
+            }
             HStack {
                 Text(entry.date, format: .dateTime.day().month().hour().minute())
                 Text("· \(entry.audioSeconds, format: .number.precision(.fractionLength(1)))s of audio")
