@@ -49,7 +49,7 @@ Your voice never leaves the machine. Ever.
  📋  Clipboard-safe paste into the focused app (⌘V, clipboard restored)
 ```
 
-A floating HUD shows a voice-reactive waveform while you speak and fades out the moment the text lands.
+A minimal monochrome pill shows voice-reactive bars while you speak and fades out the moment the text lands. Hold the key 3 seconds and release to go hands-free — dictate as long as you like, then tap once to stop.
 
 ## Features
 
