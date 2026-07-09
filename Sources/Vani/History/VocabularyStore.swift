@@ -1,18 +1,16 @@
 import Foundation
+import VaniCore
 
 /// User-defined corrections for words Whisper keeps mishearing —
 /// e.g. "rb flow" → "Vani", "nest js" → "NestJS".
 /// Applied as the LAST pipeline step (after the LLM) so corrections and
-/// casing always win. Matching is case-insensitive on word boundaries.
+/// casing always win. Matching lives in VaniCore (VocabularyRules.apply)
+/// where it's unit-tested; this class only owns persistence and UI state.
 @MainActor
 final class VocabularyStore: ObservableObject {
     static let shared = VocabularyStore()
 
-    struct Rule: Identifiable, Codable, Equatable {
-        var id = UUID()
-        var find: String
-        var replace: String
-    }
+    typealias Rule = VocabularyRule
 
     @Published var rules: [Rule] = [] {
         didSet { save() }
@@ -29,19 +27,7 @@ final class VocabularyStore: ObservableObject {
     }
 
     func apply(to text: String) -> String {
-        var result = text
-        for rule in rules where !rule.find.isEmpty {
-            let escaped = NSRegularExpression.escapedPattern(for: rule.find)
-            guard let regex = try? NSRegularExpression(
-                pattern: #"(?i)\b"# + escaped + #"\b"#
-            ) else { continue }
-            result = regex.stringByReplacingMatches(
-                in: result,
-                range: NSRange(result.startIndex..., in: result),
-                withTemplate: NSRegularExpression.escapedTemplate(for: rule.replace)
-            )
-        }
-        return result
+        VocabularyRules.apply(rules: rules, to: text)
     }
 
     private func save() {

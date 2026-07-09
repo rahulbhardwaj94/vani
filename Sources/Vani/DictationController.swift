@@ -1,4 +1,5 @@
 import AppKit
+import VaniCore
 
 /// Orchestrates the dictation pipeline:
 /// hotkey → record → transcribe → clean → inject, updating AppState throughout.

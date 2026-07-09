@@ -11,13 +11,33 @@ let package = Package(
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", exact: "1.15.0"),
     ],
     targets: [
+        // Pure text-pipeline logic (no AppKit/WhisperKit) — unit-testable.
+        .target(
+            name: "VaniCore",
+            path: "Sources/VaniCore",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
         .executableTarget(
             name: "Vani",
             dependencies: [
+                "VaniCore",
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             path: "Sources/Vani",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
+        // Plain executable, not .testTarget: Command Line Tools ship neither
+        // XCTest nor swift-testing, so `swift test` can't run without Xcode.
+        // Run via ./scripts/test.sh.
+        .executableTarget(
+            name: "VaniTestRunner",
+            dependencies: ["VaniCore"],
+            path: "Tests/VaniTests",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

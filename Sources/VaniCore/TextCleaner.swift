@@ -1,14 +1,14 @@
 import Foundation
 
 /// Fast, deterministic transcript cleanup. Always runs, LLM or not.
-enum TextCleaner {
+public enum TextCleaner {
     /// Standalone disfluencies Whisper tends to keep. Word-boundary matched,
     /// case-insensitive, with any trailing comma/space swallowed.
     private static let fillerPattern = try! NSRegularExpression(
         pattern: #"(?i)(?<![\w'])(um+|uh+|erm+|hmm+)(?![\w'])[,]?\s*"#
     )
 
-    static func clean(_ text: String) -> String {
+    public static func clean(_ text: String) -> String {
         var result = text
 
         let range = NSRange(result.startIndex..., in: result)

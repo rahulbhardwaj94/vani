@@ -238,7 +238,10 @@ private struct VocabularyTab: View {
                     .foregroundStyle(.secondary)
                 TextField("Replace with… (e.g. Vani)", text: $newReplace)
                 Button("Add") {
-                    vocab.rules.append(.init(find: newFind, replace: newReplace))
+                    vocab.rules.append(.init(
+                        find: newFind.trimmingCharacters(in: .whitespaces),
+                        replace: newReplace.trimmingCharacters(in: .whitespaces)
+                    ))
                     newFind = ""
                     newReplace = ""
                 }
