@@ -57,7 +57,7 @@ final class AudioRecorder {
         let input = s.engine.inputNode
         let inputFormat = input.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0 else {
-            throw NSError(domain: "LokVaani.audio", code: 1, userInfo: [
+            throw NSError(domain: "Vani.audio", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "No audio input device available."
             ])
         }

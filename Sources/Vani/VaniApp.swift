@@ -2,7 +2,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct LokVaaniApp: App {
+struct VaniApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState.shared
 
@@ -76,7 +76,7 @@ struct MenuContent: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        Text("LokVaani — \(appState.status.label)")
+        Text("Vani — \(appState.status.label)")
         Divider()
         Button("Dashboard…") {
             DashboardWindow.shared.show()
@@ -88,7 +88,7 @@ struct MenuContent: View {
             OnboardingWindow.shared.show()
         }
         Divider()
-        Button("Quit LokVaani") {
+        Button("Quit Vani") {
             NSApp.terminate(nil)
         }
         .keyboardShortcut("q")

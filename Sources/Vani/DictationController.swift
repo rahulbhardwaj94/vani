@@ -91,7 +91,7 @@ final class DictationController {
             DictationHUD.shared.show()
             NSSound(named: "Pop")?.play()
         } catch {
-            NSLog("LokVaani: failed to start recording: \(error.localizedDescription)")
+            NSLog("Vani: failed to start recording: \(error.localizedDescription)")
         }
     }
 
@@ -134,7 +134,7 @@ final class DictationController {
                 language: settings.language
             )
         } catch {
-            NSLog("LokVaani: transcription failed: %@", error.localizedDescription)
+            NSLog("Vani: transcription failed: %@", error.localizedDescription)
             return
         }
         guard !raw.isEmpty else { return }
@@ -147,7 +147,7 @@ final class DictationController {
             text = await OllamaClient().cleanup(text, model: settings.ollamaModel)
         }
         // Vocabulary corrections run last so they override both Whisper and
-        // the LLM (exact casing like "LokVaani" survives).
+        // the LLM (exact casing like "Vani" survives).
         text = VocabularyStore.shared.apply(to: text)
         guard !text.isEmpty else { return }
 
@@ -160,7 +160,7 @@ final class DictationController {
         )
         _ = await TextInjector.insert(text) // hides the HUD itself at paste time
 
-        NSLog("LokVaani: dictation done in %.2fs — \"%@\"",
+        NSLog("Vani: dictation done in %.2fs — \"%@\"",
               Date().timeIntervalSince(started), text)
     }
 }

@@ -1,12 +1,12 @@
 #!/bin/bash
-# One-time setup: create a self-signed code-signing certificate ("LokVaani Dev")
+# One-time setup: create a self-signed code-signing certificate ("Vani Dev")
 # in the login keychain. Signing every build with this stable identity makes
 # macOS TCC permissions (Microphone / Accessibility / Input Monitoring)
 # persist across rebuilds. Re-running this script and creating a NEW identity
 # resets those permissions.
 set -euo pipefail
 
-IDENTITY="LokVaani Dev"
+IDENTITY="Vani Dev"
 
 if security find-identity -v -p codesigning | grep -q "$IDENTITY"; then
     echo "Signing identity '$IDENTITY' already exists — nothing to do."
@@ -28,12 +28,12 @@ openssl req -x509 -newkey rsa:2048 -nodes \
 # `security import` cannot parse ("MAC verification failed").
 openssl pkcs12 -export -legacy \
     -inkey "$WORKDIR/key.pem" -in "$WORKDIR/cert.pem" \
-    -out "$WORKDIR/lokvaani.p12" -passout pass:lokvaani
+    -out "$WORKDIR/vani.p12" -passout pass:vani
 
 echo "Importing into login keychain…"
-security import "$WORKDIR/lokvaani.p12" \
+security import "$WORKDIR/vani.p12" \
     -k "$HOME/Library/Keychains/login.keychain-db" \
-    -P lokvaani -T /usr/bin/codesign
+    -P vani -T /usr/bin/codesign
 
 echo "Trusting certificate for code signing (macOS will show an authorization dialog)…"
 security add-trusted-cert -r trustRoot -p codeSign \

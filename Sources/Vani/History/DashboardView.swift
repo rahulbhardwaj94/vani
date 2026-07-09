@@ -227,7 +227,7 @@ private struct VocabularyTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("When LokVaani keeps hearing a word wrong, add a correction. Matches are case-insensitive whole words/phrases; the replacement's exact casing is kept (e.g. \"rb flow\" → \"LokVaani\").")
+            Text("When Vani keeps hearing a word wrong, add a correction. Matches are case-insensitive whole words/phrases; the replacement's exact casing is kept (e.g. \"rb flow\" → \"Vani\").")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(10)
@@ -236,7 +236,7 @@ private struct VocabularyTab: View {
                 TextField("Heard as… (e.g. rb flow)", text: $newFind)
                 Image(systemName: "arrow.right")
                     .foregroundStyle(.secondary)
-                TextField("Replace with… (e.g. LokVaani)", text: $newReplace)
+                TextField("Replace with… (e.g. Vani)", text: $newReplace)
                 Button("Add") {
                     vocab.rules.append(.init(find: newFind, replace: newReplace))
                     newFind = ""
@@ -290,7 +290,7 @@ final class DashboardWindow {
         if window == nil {
             let hosting = NSHostingController(rootView: DashboardView())
             let win = NSWindow(contentViewController: hosting)
-            win.title = "LokVaani Dashboard"
+            win.title = "Vani Dashboard"
             win.styleMask = [.titled, .closable, .miniaturizable]
             win.isReleasedWhenClosed = false
             win.center()

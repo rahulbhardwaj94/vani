@@ -87,7 +87,7 @@ final class SettingsWindow {
         if window == nil {
             let hosting = NSHostingController(rootView: SettingsView())
             let win = NSWindow(contentViewController: hosting)
-            win.title = "LokVaani Settings"
+            win.title = "Vani Settings"
             win.styleMask = [.titled, .closable]
             win.isReleasedWhenClosed = false
             win.center()

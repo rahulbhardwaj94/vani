@@ -1,4 +1,4 @@
-// Generates the LokVaani app icon without any design tools:
+// Generates the Vani app icon without any design tools:
 //   swift scripts/make-icon.swift
 // Draws a white lightning bolt (speed) flanked by voice bars (vaani) on a
 // dark squircle, writes Resources/AppIcon.icns (via iconutil) and

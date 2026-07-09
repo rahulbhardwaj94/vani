@@ -5,15 +5,15 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>LokVaani</string>
+    <string>Vani</string>
     <key>CFBundleIdentifier</key>
-    <string>com.rahulbhardwaj.lokvaani</string>
+    <string>com.rahulbhardwaj.vani</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>LokVaani</string>
+    <string>Vani</string>
     <key>CFBundleDisplayName</key>
-    <string>LokVaani</string>
+    <string>Vani</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>
@@ -27,7 +27,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>LokVaani records your voice while the dictation hotkey is active so it can transcribe it on-device.</string>
+    <string>Vani records your voice while the dictation hotkey is active so it can transcribe it on-device.</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Rahul Bhardwaj</string>
 </dict>

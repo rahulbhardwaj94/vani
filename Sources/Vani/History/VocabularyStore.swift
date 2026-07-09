@@ -1,7 +1,7 @@
 import Foundation
 
 /// User-defined corrections for words Whisper keeps mishearing —
-/// e.g. "rb flow" → "LokVaani", "nest js" → "NestJS".
+/// e.g. "rb flow" → "Vani", "nest js" → "NestJS".
 /// Applied as the LAST pipeline step (after the LLM) so corrections and
 /// casing always win. Matching is case-insensitive on word boundaries.
 @MainActor
@@ -22,7 +22,7 @@ final class VocabularyStore: ObservableObject {
 
     private init() {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appending(path: "LokVaani")
+            .appending(path: "Vani")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         fileURL = dir.appending(path: "vocabulary.json")
         rules = (try? JSONDecoder().decode([Rule].self, from: Data(contentsOf: fileURL))) ?? []
