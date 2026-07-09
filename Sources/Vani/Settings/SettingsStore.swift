@@ -37,6 +37,9 @@ final class SettingsStore: ObservableObject {
     @Published var spokenCommandsEnabled: Bool {
         didSet { UserDefaults.standard.set(spokenCommandsEnabled, forKey: "spokenCommandsEnabled") }
     }
+    @Published var streamingPreview: Bool {
+        didSet { UserDefaults.standard.set(streamingPreview, forKey: "streamingPreview") }
+    }
     @Published var ollamaModel: String {
         didSet { UserDefaults.standard.set(ollamaModel, forKey: "ollamaModel") }
     }
@@ -52,6 +55,7 @@ final class SettingsStore: ObservableObject {
         // the LLM stays available as an opt-in.
         llmCleanupEnabled = defaults.object(forKey: "llmCleanupEnabled") as? Bool ?? false
         spokenCommandsEnabled = defaults.object(forKey: "spokenCommandsEnabled") as? Bool ?? true
+        streamingPreview = defaults.object(forKey: "streamingPreview") as? Bool ?? true
         ollamaModel = defaults.string(forKey: "ollamaModel") ?? "gemma3:1b"
     }
 }

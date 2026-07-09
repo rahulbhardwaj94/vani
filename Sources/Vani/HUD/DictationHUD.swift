@@ -10,13 +10,15 @@ final class DictationHUD {
     static let shared = DictationHUD()
 
     private var panel: NSPanel?
-    private static let size = NSSize(width: 150, height: 34)
+    /// Compact while listening; grows wider to fit the live preview line.
+    private static let compactSize = NSSize(width: 170, height: 40)
+    private static let previewSize = NSSize(width: 360, height: 44)
 
     func show() {
         if panel == nil {
             let hosting = NSHostingView(rootView: HUDView())
             let p = NSPanel(
-                contentRect: NSRect(origin: .zero, size: Self.size),
+                contentRect: NSRect(origin: .zero, size: Self.compactSize),
                 styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
                 defer: true
@@ -31,12 +33,28 @@ final class DictationHUD {
             p.isReleasedWhenClosed = false
             panel = p
         }
+        panel?.setContentSize(Self.compactSize)
         position()
         panel?.alphaValue = 0
         panel?.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.15
             panel?.animator().alphaValue = 1
+        }
+    }
+
+    /// Grow the pill to fit the live preview line, or shrink it back. Keeps
+    /// the pill horizontally centered on screen as it resizes.
+    func setPreviewing(_ previewing: Bool) {
+        guard let panel else { return }
+        let target = previewing ? Self.previewSize : Self.compactSize
+        guard panel.frame.size != target else { return }
+        var frame = panel.frame
+        frame.origin.x -= (target.width - frame.width) / 2
+        frame.size = target
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.18
+            panel.animator().setFrame(frame, display: true)
         }
     }
 
@@ -75,9 +93,20 @@ private struct HUDView: View {
             switch appState.status {
             case .recording:
                 EqualizerBars(level: appState.audioLevel)
-                Text("Listening…")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.92))
+                if let preview = appState.previewTranscript, !preview.isEmpty {
+                    // Live partial: show the tail (most recent words) on one
+                    // line, dimmed to read as provisional, not final text.
+                    Text(preview)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.62))
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("Listening…")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.92))
+                }
                 if appState.isHandsFree {
                     // Hands-free lock engaged: recording continues until a
                     // single tap of the hold key.
@@ -95,10 +124,11 @@ private struct HUDView: View {
             }
         }
         .padding(.horizontal, 14)
-        .frame(width: 150, height: 34)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MonoGlass())
         .clipShape(Capsule())
         .overlay(Capsule().strokeBorder(.white.opacity(0.14), lineWidth: 1))
+        .padding(3)
         .environment(\.colorScheme, .dark)
     }
 }

@@ -36,6 +36,11 @@ struct SettingsView: View {
                 Text("Changing the model triggers a download on next dictation if it isn't cached yet.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Toggle("Live preview while speaking", isOn: $settings.streamingPreview)
+                Text("Shows a running transcript in the pill as you talk. It's disposable — the pasted text always comes from the final pass — and falls back silently if the model can't keep up.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Spoken commands") {

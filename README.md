@@ -49,13 +49,14 @@ Your voice never leaves the machine. Ever.
  📋  Clipboard-safe paste into the focused app (⌘V, clipboard restored)
 ```
 
-A minimal monochrome pill shows voice-reactive bars while you speak and fades out the moment the text lands. Hold the key 3 seconds and release to go hands-free — dictate as long as you like, then tap once to stop.
+A minimal monochrome pill shows voice-reactive bars and a live running transcript while you speak, then fades out the moment the text lands. Hold the key 3 seconds and release to go hands-free — dictate as long as you like, then tap once to stop.
 
 ## Features
 
 - 🎙 **Push-to-talk, hands-free & toggle** — hold Right Option to talk; hold it 3 s and release to lock hands-free (tap once to stop); or tap a customizable chord (default ⌥⌘D)
 - 🔒 **100% offline** — Whisper + LLM both run on-device; works in airplane mode
 - 🌊 **Live waveform HUD** — monochrome, voice-reactive, follows you across displays, never steals focus
+- 👀 **Live preview** — a running transcript appears in the pill as you speak, so you catch mishears before you stop (the pasted text always comes from the final pass)
 - 🗣 **Spoken commands, English & Hindi** — "new line" / "नई लाइन", "full stop", "question mark", "scratch that" to discard; deterministic rules, never an LLM
 - 📊 **Stats dashboard** — dictations, words, and time saved vs typing by day/week/month/year
 - ✨ **Two-stage cleanup** — instant regex pass, plus an optional local-LLM polish with a paraphrase guard (if the LLM rewrites instead of cleaning, its output is discarded)
@@ -148,7 +149,7 @@ Good local dictation tools exist — [VoiceInk](https://github.com/Beingpax/Voic
 
 In build order — detailed specs in [docs/spec-v0.2.md](docs/spec-v0.2.md):
 
-- [ ] Streaming preview while speaking
+- [x] Streaming preview while speaking
 - [x] Spoken commands, English **and** Hindi ("new line" / "नई लाइन")
 - [ ] Hinglish normalization — consistent script for code-switched speech
 - [ ] Homebrew cask (`brew install --cask …/vani`)

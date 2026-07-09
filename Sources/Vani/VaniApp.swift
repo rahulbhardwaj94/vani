@@ -64,6 +64,9 @@ final class AppState: ObservableObject {
 
     @Published var status: DictationStatus = .idle
     @Published var lastTranscript: String?
+    /// Live partial transcript shown in the HUD while recording, updated every
+    /// ~1.5 s. Never inserted — the final paste always comes from the full pass.
+    @Published var previewTranscript: String?
     /// Mic RMS level while recording, 0…~0.3 typical speech. Drives the HUD bars.
     @Published var audioLevel: Float = 0
     /// True when a ≥3 s hold released into hands-free mode (tap once to stop).

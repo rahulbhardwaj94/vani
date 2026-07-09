@@ -64,4 +64,28 @@ actor TranscriptionService {
         return results.map(\.text).joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// Best-effort partial transcript for the live preview while recording.
+    /// Reuses the already-loaded model (never triggers a download/load) and
+    /// returns "" if the model isn't ready or the pass fails — the preview is
+    /// disposable, so it must never throw into the UI or hold up the final
+    /// pass. Temperature 0 keeps successive partials on a stable prefix.
+    func transcribePreview(samples: [Float], model: String, language: String) async -> String {
+        guard state == .ready, loadedModel == model, let whisperKit else { return "" }
+
+        let options = DecodingOptions(
+            task: .transcribe,
+            language: language == "auto" ? nil : language,
+            temperature: 0,
+            usePrefillPrompt: true,
+            detectLanguage: language == "auto"
+        )
+        do {
+            let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: options)
+            return results.map(\.text).joined(separator: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            return ""
+        }
+    }
 }

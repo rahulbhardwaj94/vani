@@ -19,6 +19,9 @@ final class DictationController {
     private var pttDownAt: Date?
     private var suppressNextKeyUp = false
 
+    /// The live-preview re-decode loop; runs only while recording.
+    private var previewTask: Task<Void, Never>?
+
     private init() {}
 
     func start() {
@@ -89,16 +92,59 @@ final class DictationController {
             }
             try recorder.start()
             AppState.shared.status = .recording
+            AppState.shared.previewTranscript = nil
             DictationHUD.shared.show()
             NSSound(named: "Pop")?.play()
+            startPreviewLoop()
         } catch {
             NSLog("Vani: failed to start recording: \(error.localizedDescription)")
         }
     }
 
+    /// While recording, re-decode the accumulated buffer every ~1.5 s and
+    /// publish it as a live partial. Whisper isn't incremental, so we re-run
+    /// the whole (capped) buffer each tick; awaiting each pass before sleeping
+    /// means a slow pass just skips the next tick instead of queuing. Preview
+    /// output is disposable and never inserted.
+    private func startPreviewLoop() {
+        guard SettingsStore.shared.streamingPreview else { return }
+        let model = SettingsStore.shared.whisperModel
+        let language = SettingsStore.shared.language
+        let minSamples = Int(AudioRecorder.targetSampleRate * 0.8)
+        // Cap preview at the last 30 s so long hands-free dictations don't
+        // heat the ANE re-decoding minutes of audio; the final pass is full.
+        let windowSamples = Int(AudioRecorder.targetSampleRate * 30)
+
+        previewTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(1500))
+                guard !Task.isCancelled, let self else { return }
+                guard AppState.shared.status == .recording else { return }
+
+                let samples = self.recorder.snapshot()
+                guard samples.count >= minSamples else { continue }
+                let window = samples.count > windowSamples
+                    ? Array(samples.suffix(windowSamples)) : samples
+
+                let partial = await TranscriptionService.shared.transcribePreview(
+                    samples: window, model: model, language: language
+                )
+                guard !Task.isCancelled,
+                      AppState.shared.status == .recording,
+                      !partial.isEmpty else { continue }
+                AppState.shared.previewTranscript = partial
+                DictationHUD.shared.setPreviewing(true)
+            }
+        }
+    }
+
     private func finishRecording() {
         guard AppState.shared.status == .recording else { return }
+        previewTask?.cancel()
+        previewTask = nil
         AppState.shared.status = .transcribing
+        AppState.shared.previewTranscript = nil
+        DictationHUD.shared.setPreviewing(false)
         AppState.shared.audioLevel = 0
         AppState.shared.isHandsFree = false
         pttDownAt = nil

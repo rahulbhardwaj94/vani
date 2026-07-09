@@ -95,6 +95,16 @@ final class AudioRecorder {
         session = s
     }
 
+    /// A copy of the audio captured so far, for the live preview loop.
+    /// Cheap at 16 kHz; safe to call while recording (copies under the same
+    /// lock the tap uses) and returns [] once stopped.
+    func snapshot() -> [Float] {
+        guard let s = session else { return [] }
+        s.lock.lock()
+        defer { s.lock.unlock() }
+        return s.samples
+    }
+
     /// Stops capture and returns the recorded utterance.
     func stop() -> [Float] {
         guard let s = session else { return [] }
