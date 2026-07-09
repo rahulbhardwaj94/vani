@@ -26,6 +26,13 @@ final class DictationController {
             await TranscriptionService.shared.warmUp(model: SettingsStore.shared.whisperModel)
         }
 
+        recorder.onInterruption = { [weak self] in
+            // Input device changed mid-recording (e.g. AirPods connected):
+            // capture is frozen, so finish with what we have.
+            guard AppState.shared.status == .recording else { return }
+            self?.finishRecording()
+        }
+
         hotkeys.onPushToTalkDown = { [weak self] in self?.pushToTalkDown() }
         hotkeys.onPushToTalkUp = { [weak self] in self?.pushToTalkUp() }
         hotkeys.onToggle = { [weak self] in
