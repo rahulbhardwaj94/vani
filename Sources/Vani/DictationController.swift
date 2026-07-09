@@ -147,6 +147,12 @@ final class DictationController {
         if settings.llmCleanupEnabled && text.count <= 350 {
             text = await OllamaClient().cleanup(text, model: settings.ollamaModel)
         }
+        // Spoken commands ("new line", "full stop", "scratch that") run after
+        // the LLM so nothing rewrites the inserted punctuation, and before
+        // vocabulary. An empty result means the dictation was discarded.
+        if settings.spokenCommandsEnabled {
+            text = CommandProcessor.apply(to: text)
+        }
         // Vocabulary corrections run last so they override both Whisper and
         // the LLM (exact casing like "Vani" survives).
         text = VocabularyStore.shared.apply(to: text)

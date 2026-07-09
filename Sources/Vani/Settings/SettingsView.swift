@@ -38,6 +38,13 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Spoken commands") {
+                Toggle("Spoken punctuation & commands", isOn: $settings.spokenCommandsEnabled)
+                Text("Say \"new line\" / \"नई लाइन\", \"new paragraph\", \"full stop\", \"comma\", \"question mark\" — or \"scratch that\" / \"रहने दो\" to discard a dictation. Phrases after an article stay literal (\"a new line of code\").")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Cleanup") {
                 Toggle("Polish text with local LLM (Ollama)", isOn: $settings.llmCleanupEnabled)
                 if settings.llmCleanupEnabled {

@@ -56,6 +56,7 @@ A minimal monochrome pill shows voice-reactive bars while you speak and fades ou
 - 🎙 **Push-to-talk, hands-free & toggle** — hold Right Option to talk; hold it 3 s and release to lock hands-free (tap once to stop); or tap a customizable chord (default ⌥⌘D)
 - 🔒 **100% offline** — Whisper + LLM both run on-device; works in airplane mode
 - 🌊 **Live waveform HUD** — monochrome, voice-reactive, follows you across displays, never steals focus
+- 🗣 **Spoken commands, English & Hindi** — "new line" / "नई लाइन", "full stop", "question mark", "scratch that" to discard; deterministic rules, never an LLM
 - 📊 **Stats dashboard** — dictations, words, and time saved vs typing by day/week/month/year
 - ✨ **Two-stage cleanup** — instant regex pass, plus an optional local-LLM polish with a paraphrase guard (if the LLM rewrites instead of cleaning, its output is discarded)
 - 📚 **Dictation history** — searchable, persistent, with one-click copy
@@ -148,7 +149,7 @@ Good local dictation tools exist — [VoiceInk](https://github.com/Beingpax/Voic
 In build order — detailed specs in [docs/spec-v0.2.md](docs/spec-v0.2.md):
 
 - [ ] Streaming preview while speaking
-- [ ] Spoken commands, English **and** Hindi ("new line" / "नई लाइन")
+- [x] Spoken commands, English **and** Hindi ("new line" / "नई लाइन")
 - [ ] Hinglish normalization — consistent script for code-switched speech
 - [ ] Homebrew cask (`brew install --cask …/vani`)
 - [ ] Per-app profiles (e.g. no LLM polish in terminals)

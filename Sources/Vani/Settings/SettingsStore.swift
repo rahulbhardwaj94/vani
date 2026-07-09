@@ -34,6 +34,9 @@ final class SettingsStore: ObservableObject {
     @Published var llmCleanupEnabled: Bool {
         didSet { UserDefaults.standard.set(llmCleanupEnabled, forKey: "llmCleanupEnabled") }
     }
+    @Published var spokenCommandsEnabled: Bool {
+        didSet { UserDefaults.standard.set(spokenCommandsEnabled, forKey: "spokenCommandsEnabled") }
+    }
     @Published var ollamaModel: String {
         didSet { UserDefaults.standard.set(ollamaModel, forKey: "ollamaModel") }
     }
@@ -48,6 +51,7 @@ final class SettingsStore: ObservableObject {
         // cleanup + Whisper's own punctuation is the trustworthy baseline;
         // the LLM stays available as an opt-in.
         llmCleanupEnabled = defaults.object(forKey: "llmCleanupEnabled") as? Bool ?? false
+        spokenCommandsEnabled = defaults.object(forKey: "spokenCommandsEnabled") as? Bool ?? true
         ollamaModel = defaults.string(forKey: "ollamaModel") ?? "gemma3:1b"
     }
 }
