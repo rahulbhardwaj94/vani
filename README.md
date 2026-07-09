@@ -145,11 +145,15 @@ Good local dictation tools exist — [VoiceInk](https://github.com/Beingpax/Voic
 
 ## Roadmap
 
-- [ ] Per-app profiles (e.g. no LLM polish in terminals)
-- [ ] Spoken commands ("new line", "make a list")
+In build order — detailed specs in [docs/spec-v0.2.md](docs/spec-v0.2.md):
+
 - [ ] Streaming preview while speaking
-- [ ] Configurable hold key (Fn/Globe support)
-- [ ] Parakeet (FluidAudio) as an alternative STT engine
+- [ ] Spoken commands, English **and** Hindi ("new line" / "नई लाइन")
+- [ ] Hinglish normalization — consistent script for code-switched speech
+- [ ] Homebrew cask (`brew install --cask …/vani`)
+- [ ] Per-app profiles (e.g. no LLM polish in terminals)
+- [ ] Vocabulary → Whisper prompt biasing, Esc-to-cancel, scratchpad fallback
+- [ ] Parakeet (FluidAudio) as a faster alternative STT engine
 
 ## License
 
