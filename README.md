@@ -58,6 +58,7 @@ A minimal monochrome pill shows voice-reactive bars and a live running transcrip
 - 🌊 **Live waveform HUD** — monochrome, voice-reactive, follows you across displays, never steals focus
 - 👀 **Live preview** — a running transcript appears in the pill as you speak, so you catch mishears before you stop (the pasted text always comes from the final pass)
 - 🗣 **Spoken commands, English & Hindi** — "new line" / "नई लाइन", "full stop", "question mark", "scratch that" to discard; deterministic rules, never an LLM
+- 🌐 **Code-switch aware** — speak English then Hindi in one breath and each part is transcribed in its own language (English in Latin, Hindi in Devanagari), instead of the whole clip being force-decoded as one language
 - 📊 **Stats dashboard** — dictations, words, and time saved vs typing by day/week/month/year
 - ✨ **Two-stage cleanup** — instant regex pass, plus an optional local-LLM polish with a paraphrase guard (if the LLM rewrites instead of cleaning, its output is discarded)
 - 📚 **Dictation history** — searchable, persistent, with one-click copy
@@ -151,7 +152,8 @@ In build order — detailed specs in [docs/spec-v0.2.md](docs/spec-v0.2.md):
 
 - [x] Streaming preview while speaking
 - [x] Spoken commands, English **and** Hindi ("new line" / "नई लाइन")
-- [ ] Hinglish normalization — consistent script for code-switched speech
+- [x] Code-switch detection — per-segment language decode (English + Hindi in one utterance)
+- [ ] Hinglish normalization — optional consistent script (romanized ↔ Devanagari) on top of code-switch output
 - [ ] Homebrew cask (`brew install --cask …/vani`)
 - [ ] Per-app profiles (e.g. no LLM polish in terminals)
 - [ ] Vocabulary → Whisper prompt biasing, Esc-to-cancel, scratchpad fallback

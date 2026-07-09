@@ -1,5 +1,6 @@
 import Foundation
 import WhisperKit
+import VaniCore
 
 /// Owns the WhisperKit pipeline. Loaded once at launch (in the background)
 /// and kept warm so each dictation only pays inference cost.
@@ -61,15 +62,72 @@ actor TranscriptionService {
             ])
         }
 
+        // Explicit language: the user committed to one — single pass.
+        if language != "auto" {
+            return try await decode(samples, language: language, on: whisperKit)
+        }
+
+        // Auto: Whisper detects one language for the whole clip and decodes
+        // everything in it, so a mid-utterance switch (English → Hindi) gets
+        // force-decoded as the first language (Hindi comes back as garbled
+        // English + a "Bye" hallucination). Split on pauses and handle each
+        // segment in its own language. Cost is conditional: a dictation with
+        // no real pause, or one that's all one language, still decodes in a
+        // single pass — only a genuine code-switch pays for extra decodes.
+        let segments = Self.speechSegments(in: samples)
+        guard segments.count > 1 else {
+            return try await decode(samples, language: nil, on: whisperKit)
+        }
+
+        var langs: [String] = []
+        for seg in segments {
+            let slice = Array(samples[seg.start..<seg.end])
+            let lang = (try? await whisperKit.detectLangauge(audioArray: slice).language) ?? "en"
+            langs.append(lang)
+        }
+
+        // All one language after all: one whole-clip decode keeps it fast and
+        // preserves cross-pause context (better punctuation than per-segment).
+        if Set(langs).count <= 1 {
+            return try await decode(samples, language: langs.first, on: whisperKit)
+        }
+
+        // Real code-switch: decode each segment in its detected language.
+        NSLog("Vani: code-switch detected across %d segments: %@",
+              segments.count, langs.joined(separator: ","))
+        var parts: [String] = []
+        for (seg, lang) in zip(segments, langs) {
+            let slice = Array(samples[seg.start..<seg.end])
+            let text = try await decode(slice, language: lang, on: whisperKit)
+            if !text.isEmpty { parts.append(text) }
+        }
+        return parts.joined(separator: " ")
+    }
+
+    /// One Whisper decode. `language == nil` auto-detects; a code decodes in
+    /// that language.
+    private func decode(_ samples: [Float], language: String?, on whisperKit: WhisperKit) async throws -> String {
         let options = DecodingOptions(
             task: .transcribe,
-            language: language == "auto" ? nil : language,
+            language: language,
             usePrefillPrompt: true,
-            detectLanguage: language == "auto"
+            detectLanguage: language == nil
         )
         let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: options)
         return results.map(\.text).joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Split audio into pause-delimited speech segments (sample-index ranges).
+    /// Voice-active regions separated by less than ~0.5 s are merged into one
+    /// segment; longer silences split. Tiny blips are dropped. Returns a single
+    /// segment (or none) when there's no clear pause to split on — the caller
+    /// then decodes the whole clip in one pass.
+    static func speechSegments(in samples: [Float]) -> [(start: Int, end: Int)] {
+        let vad = EnergyVAD(sampleRate: 16_000, frameLength: 0.1, energyThreshold: 0.02)
+        let active = vad.calculateActiveChunks(in: samples)
+            .map { (start: $0.startIndex, end: $0.endIndex) }
+        return SpeechSegmenter.merge(activeChunks: active, totalSamples: samples.count)
     }
 
     /// Best-effort partial transcript for the live preview while recording.
