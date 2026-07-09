@@ -29,6 +29,14 @@ final class DictationController {
         Task.detached(priority: .utility) {
             await TranscriptionService.shared.warmUp(model: SettingsStore.shared.whisperModel)
         }
+        // Warm the small preview model too (its own instance) so live preview
+        // is ready without stalling the first dictation. Lower priority than
+        // the main model — the final pass matters more than the preview.
+        if SettingsStore.shared.streamingPreview {
+            Task.detached(priority: .background) {
+                await TranscriptionService.preview.warmUp(model: SettingsStore.previewModel)
+            }
+        }
 
         recorder.onInterruption = { [weak self] in
             // Input device changed mid-recording (e.g. AirPods connected):
@@ -108,16 +116,22 @@ final class DictationController {
     /// output is disposable and never inserted.
     private func startPreviewLoop() {
         guard SettingsStore.shared.streamingPreview else { return }
-        let model = SettingsStore.shared.whisperModel
+        let model = SettingsStore.previewModel
         let language = SettingsStore.shared.language
-        let minSamples = Int(AudioRecorder.targetSampleRate * 0.8)
-        // Cap preview at the last 30 s so long hands-free dictations don't
-        // heat the ANE re-decoding minutes of audio; the final pass is full.
-        let windowSamples = Int(AudioRecorder.targetSampleRate * 30)
+        // Show something within ~0.5 s of the first words, then update ~every
+        // second. Kick in as soon as there's a little audio.
+        let minSamples = Int(AudioRecorder.targetSampleRate * 0.4)
+        let firstDelay = Duration.milliseconds(500)
+        let cadence = Duration.milliseconds(900)
+        // Decode only the recent window: the small model keeps this fast, and
+        // the final (full-buffer) pass is what actually gets pasted.
+        let windowSamples = Int(AudioRecorder.targetSampleRate * 20)
 
         previewTask = Task { [weak self] in
+            var delay = firstDelay
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(1500))
+                try? await Task.sleep(for: delay)
+                delay = cadence
                 guard !Task.isCancelled, let self else { return }
                 guard AppState.shared.status == .recording else { return }
 
@@ -126,7 +140,10 @@ final class DictationController {
                 let window = samples.count > windowSamples
                     ? Array(samples.suffix(windowSamples)) : samples
 
-                let partial = await TranscriptionService.shared.transcribePreview(
+                // Runs on the dedicated preview instance/model, so it never
+                // blocks the final large-v3-turbo pass. Awaiting each pass
+                // means a slow one skips the next tick instead of queuing.
+                let partial = await TranscriptionService.preview.transcribePreview(
                     samples: window, model: model, language: language
                 )
                 guard !Task.isCancelled,

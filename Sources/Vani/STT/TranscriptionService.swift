@@ -4,7 +4,14 @@ import WhisperKit
 /// Owns the WhisperKit pipeline. Loaded once at launch (in the background)
 /// and kept warm so each dictation only pays inference cost.
 actor TranscriptionService {
+    /// The main pipeline: the user's chosen (large-v3-turbo) model, used for
+    /// the authoritative final transcript that gets pasted.
     static let shared = TranscriptionService()
+
+    /// A second, independent instance running a small/fast model purely for
+    /// the live preview. Kept separate so a preview re-decode never blocks the
+    /// final pass — releasing the key is never slowed by an in-flight preview.
+    static let preview = TranscriptionService()
 
     enum State: Equatable {
         case unloaded
@@ -81,9 +88,13 @@ actor TranscriptionService {
             detectLanguage: language == "auto"
         )
         do {
+            let started = Date()
             let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: options)
-            return results.map(\.text).joined(separator: " ")
+            let text = results.map(\.text).joined(separator: " ")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+            NSLog("Vani: preview pass %.2fs for %.1fs audio",
+                  Date().timeIntervalSince(started), Double(samples.count) / 16_000)
+            return text
         } catch {
             return ""
         }

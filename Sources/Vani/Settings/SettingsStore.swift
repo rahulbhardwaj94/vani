@@ -13,6 +13,12 @@ final class SettingsStore: ObservableObject {
         "openai_whisper-base",
     ]
 
+    /// The live preview runs on this small/fast model (~0.5 GB) on its own
+    /// WhisperKit instance, so it stays responsive and never competes with the
+    /// large-v3-turbo final pass. Preview output is disposable, so a lighter
+    /// model is the right trade — the pasted text always comes from `whisperModel`.
+    static let previewModel = "openai_whisper-small"
+
     /// Spoken-language options: Whisper language codes, or "auto" to detect
     /// per dictation (large-v3-turbo supports 99 languages including Hindi).
     static let languages: [(code: String, label: String)] = [
