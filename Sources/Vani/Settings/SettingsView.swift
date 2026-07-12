@@ -58,7 +58,7 @@ struct SettingsView: View {
 
             Section("Code mode") {
                 Toggle("Developer-aware dictation in terminals & editors", isOn: $settings.codeModeEnabled)
-                Text("In Terminal, iTerm, VS Code, Cursor, Xcode, JetBrains IDEs and friends: no auto-capitalization, no trailing period, LLM polish off — and spoken casing works: \"camel case get user name\" → getUserName (also snake, kebab, pascal, screaming snake).")
+                Text("In Terminal, iTerm, VS Code, Cursor, Xcode, JetBrains IDEs and friends: no auto-capitalization, no trailing period, LLM polish off. Spoken casing: \"camel case get user name\" → getUserName (also snake, kebab, pascal, screaming snake). Spoken symbols: \"dash m\" → -m, \"pipe\" → |, \"server dot js\" → server.js, \"open paren\", \"fat arrow\", \"underscore\"…")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

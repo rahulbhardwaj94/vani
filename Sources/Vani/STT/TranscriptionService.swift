@@ -106,6 +106,9 @@ actor TranscriptionService {
             let slice = Array(samples[seg.start..<seg.end])
             langs.append(await Self.detectLanguageFast(slice, fallback: whisperKit))
         }
+        // Short segments (fillers) can't be language-ID'd reliably — inherit
+        // from the nearest long neighbor instead of decoding junk.
+        langs = SpeechSegmenter.smoothLanguages(segments: segments, languages: langs)
 
         // All one language after all: one whole-clip decode keeps it fast and
         // preserves cross-pause context (better punctuation than per-segment).

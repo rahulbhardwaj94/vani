@@ -119,6 +119,43 @@ public enum SpeechSegmenter {
         return best + windowSamples / 2
     }
 
+    /// Language-ID smoothing: a short segment (a filler, "umm", one word)
+    /// carries too little signal for reliable detection — in the field an
+    /// English breath was tagged Hindi and decoded to junk ("तेगे एंड").
+    /// Segments shorter than `minIndependentSeconds` inherit the language of
+    /// their nearest long neighbor (ties → the earlier one) instead of
+    /// trusting their own detection. All-short inputs are left unchanged.
+    public static func smoothLanguages(
+        segments: [(start: Int, end: Int)],
+        languages: [String],
+        sampleRate: Int = 16_000,
+        minIndependentSeconds: Double = 2.0
+    ) -> [String] {
+        guard segments.count == languages.count, !segments.isEmpty else { return languages }
+        let minLen = Int(Double(sampleRate) * minIndependentSeconds)
+        let isLong = segments.map { $0.end - $0.start >= minLen }
+        guard isLong.contains(true) else { return languages }
+
+        return languages.enumerated().map { index, language in
+            if isLong[index] { return language }
+            // Nearest by audio gap, not by index — a filler belongs to the
+            // speech it's contiguous with, not whichever side has more
+            // segments. Ties go to the earlier (preceding) run.
+            var best = index
+            var bestGap = Int.max
+            for j in segments.indices where isLong[j] {
+                let gap = j < index
+                    ? segments[index].start - segments[j].end
+                    : segments[j].start - segments[index].end
+                if gap < bestGap {
+                    bestGap = gap
+                    best = j
+                }
+            }
+            return languages[best]
+        }
+    }
+
     /// Collapse adjacent segments that detected the same language into one
     /// span (first start → last end, silence between them included). The
     /// split threshold is deliberately eager so a code-switch with only a

@@ -320,6 +320,9 @@ final class DictationController {
             text = CommandProcessor.apply(to: text)
         }
         if codeMode {
+            // Symbols first so casing capture stops at the punctuation they
+            // introduce: "camel case user name dot js" → userName.js.
+            text = SymbolCommands.apply(to: text)
             text = CasingCommands.apply(to: text)
         }
         // Vocabulary corrections run last so they override both Whisper and

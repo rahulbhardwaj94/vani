@@ -50,6 +50,11 @@ final class IncrementalTranscriber {
     /// window, so it overlaps audio capture instead of serializing after it.
     private var prefetchedTailLanguage: Task<String, Never>?
     private var prefetchFrontier = -1
+    /// Language of the last chunk long enough to detect reliably. Short
+    /// chunks (< 2 s: fillers, single words) inherit it rather than trusting
+    /// their own detection — an English "umm" tagged [hi] decodes to junk.
+    private var lastLanguage: String?
+    private static let minDetectSeconds = 2.0
 
     init(model: String, language: String, snapshot: @escaping () -> [Float]) {
         self.model = model
@@ -114,6 +119,10 @@ final class IncrementalTranscriber {
             let lang: String?
             if language != "auto" {
                 lang = language
+            } else if tail.count < Self.minDetectSeconds.samples, let lastLanguage {
+                // A one-word tail can't be language-ID'd; stay in the
+                // language the dictation was already running in.
+                lang = lastLanguage
             } else if prefetchFrontier == frontier, let prefetched = prefetchedTailLanguage {
                 lang = await prefetched.value
             } else {
@@ -179,9 +188,16 @@ final class IncrementalTranscriber {
             return
         }
         let chunk = Array(region[seg.start..<min(seg.end, region.count)])
-        let lang: String? = language == "auto"
-            ? await TranscriptionService.shared.detectLanguageAuto(chunk)
-            : language
+        let lang: String?
+        if language != "auto" {
+            lang = language
+        } else if chunk.count < Self.minDetectSeconds.samples, let lastLanguage {
+            lang = lastLanguage
+        } else {
+            let detected = await TranscriptionService.shared.detectLanguageAuto(chunk)
+            if chunk.count >= Self.minDetectSeconds.samples { lastLanguage = detected }
+            lang = detected
+        }
         var rms: Float = 0
         for s in chunk { rms += s * s }
         rms = (rms / Float(max(chunk.count, 1))).squareRoot()
