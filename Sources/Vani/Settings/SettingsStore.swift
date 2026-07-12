@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// UserDefaults-backed app settings.
@@ -49,6 +50,12 @@ final class SettingsStore: ObservableObject {
     @Published var codeModeEnabled: Bool {
         didSet { UserDefaults.standard.set(codeModeEnabled, forKey: "codeModeEnabled") }
     }
+    @Published var showDockIcon: Bool {
+        didSet {
+            UserDefaults.standard.set(showDockIcon, forKey: "showDockIcon")
+            NSApp.setActivationPolicy(showDockIcon ? .regular : .accessory)
+        }
+    }
 
     /// Bundle ids treated as code contexts: terminals, editors, IDEs.
     /// Prefix match so JetBrains' per-IDE ids are covered in one entry.
@@ -77,6 +84,7 @@ final class SettingsStore: ObservableObject {
         spokenCommandsEnabled = defaults.object(forKey: "spokenCommandsEnabled") as? Bool ?? true
         streamingPreview = defaults.object(forKey: "streamingPreview") as? Bool ?? true
         codeModeEnabled = defaults.object(forKey: "codeModeEnabled") as? Bool ?? true
+        showDockIcon = defaults.object(forKey: "showDockIcon") as? Bool ?? false
         ollamaModel = defaults.string(forKey: "ollamaModel") ?? "gemma3:1b"
     }
 }

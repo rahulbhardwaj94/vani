@@ -18,9 +18,14 @@ struct VaniApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Menu-bar only; LSUIElement in Info.plist hides the Dock icon,
-        // but enforce it when run as a bare executable during development.
-        NSApp.setActivationPolicy(.accessory)
+        // Menu-bar only by default; LSUIElement in Info.plist hides the Dock
+        // icon, but enforce it when run as a bare executable during
+        // development. The "Show Dock icon" setting overrides to .regular —
+        // the escape hatch for menu bars crowded enough to hide the status
+        // item (notch).
+        NSApp.setActivationPolicy(
+            SettingsStore.shared.showDockIcon ? .regular : .accessory
+        )
 
         if !PermissionsManager.shared.allGranted {
             OnboardingWindow.shared.show()
@@ -39,6 +44,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DashboardWindow.shared.show()
         return true
     }
+
+    /// Right-click menu on the Dock icon (when "Show Dock icon" is on).
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Scratchpad", action: #selector(openScratchpad), keyEquivalent: "")
+        menu.addItem(withTitle: "Dashboard", action: #selector(openDashboard), keyEquivalent: "")
+        menu.addItem(withTitle: "Settings", action: #selector(openSettings), keyEquivalent: "")
+        menu.items.forEach { $0.target = self }
+        return menu
+    }
+
+    @objc private func openScratchpad() { ScratchpadWindow.shared.show() }
+    @objc private func openDashboard() { DashboardWindow.shared.show() }
+    @objc private func openSettings() { SettingsWindow.shared.show() }
 }
 
 /// Global app status, drives the menu-bar icon.

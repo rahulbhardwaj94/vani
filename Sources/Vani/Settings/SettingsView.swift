@@ -75,6 +75,10 @@ struct SettingsView: View {
             }
 
             Section("General") {
+                Toggle("Show Dock icon", isOn: $settings.showDockIcon)
+                Text("Useful when a crowded menu bar (or the notch) hides Vani's status icon. Right-click the Dock icon for Scratchpad, Dashboard, and Settings.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in
                         do {
