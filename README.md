@@ -53,10 +53,10 @@ A minimal monochrome pill shows voice-reactive bars and a live running transcrip
 
 ## Features
 
-- 🎙 **Push-to-talk, hands-free & toggle** — hold Right Option to talk; double-tap it to lock hands-free for long dictations (tap once to stop, or hold ≥1.5 s and release); Esc discards a recording; or use a customizable chord (default ⌥⌘D)
+- 🎙 **Push-to-talk, hands-free & toggle** — hold Right Option to talk; double-tap it to lock hands-free for long dictations (tap once to stop); Esc discards a recording; or use a customizable chord (default ⌥⌘D)
 - 🔒 **100% offline** — Whisper + LLM both run on-device; works in airplane mode
 - 🌊 **Live waveform HUD** — monochrome, voice-reactive, follows you across displays, never steals focus
-- 👀 **Live preview** — a running transcript appears in the pill as you speak, so you catch mishears before you stop (the pasted text always comes from the final pass)
+- 👀 **Live preview** *(experimental, off by default — `FeatureFlags.streamingPreview`)* — a running transcript in the pill as you speak; disabled while the small preview model's noise hallucinations and latency get tuned
 - 🗣 **Spoken commands, English & Hindi** — "new line" / "नई लाइन", "full stop", "question mark", "scratch that" to discard; deterministic rules, never an LLM
 - 🌐 **Code-switch aware** — speak English then Hindi in one breath and each part is transcribed in its own language (English in Latin, Hindi in Devanagari), instead of the whole clip being force-decoded as one language
 - 📊 **Stats dashboard** — dictations, words, and time saved vs typing by day/week/month/year
@@ -150,7 +150,7 @@ Good local dictation tools exist — [VoiceInk](https://github.com/Beingpax/Voic
 
 In build order — detailed specs in [docs/spec-v0.2.md](docs/spec-v0.2.md):
 
-- [x] Streaming preview while speaking
+- [x] Streaming preview while speaking *(built; behind a feature flag pending noise/latency tuning)*
 - [x] Spoken commands, English **and** Hindi ("new line" / "नई लाइन")
 - [x] Code-switch detection — per-segment language decode (English + Hindi in one utterance)
 - [ ] Hinglish normalization — optional consistent script (romanized ↔ Devanagari) on top of code-switch output

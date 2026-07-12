@@ -40,7 +40,9 @@ final class DictationController {
         // Warm the small preview model too (its own instance) so live preview
         // is ready without stalling the first dictation. Lower priority than
         // the main model — the final pass matters more than the preview.
-        if SettingsStore.shared.streamingPreview {
+        // (With the flag off, the code-switch path still warms this model
+        // lazily the first time it needs a fast language detector.)
+        if FeatureFlags.streamingPreview, SettingsStore.shared.streamingPreview {
             Task.detached(priority: .background) {
                 await TranscriptionService.preview.warmUp(model: SettingsStore.previewModel)
             }
@@ -99,7 +101,7 @@ final class DictationController {
         guard let downAt = pttDownAt else { return finishRecording() }
         let held = Date().timeIntervalSince(downAt)
 
-        if held >= handsFreeHoldThreshold {
+        if FeatureFlags.holdToLockHandsFree, held >= handsFreeHoldThreshold {
             // Fallback: held long enough that release locks into hands-free.
             AppState.shared.isHandsFree = true
             NSSound(named: "Tink")?.play()
@@ -170,7 +172,7 @@ final class DictationController {
     /// means a slow pass just skips the next tick instead of queuing. Preview
     /// output is disposable and never inserted.
     private func startPreviewLoop() {
-        guard SettingsStore.shared.streamingPreview else { return }
+        guard FeatureFlags.streamingPreview, SettingsStore.shared.streamingPreview else { return }
         let model = SettingsStore.previewModel
         let language = SettingsStore.shared.language
         // Show something within ~0.5 s of the first words, then update ~every

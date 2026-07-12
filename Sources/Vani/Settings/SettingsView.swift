@@ -15,7 +15,8 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 KeyboardShortcuts.Recorder("Toggle dictation:", name: .toggleDictation)
-                Text("Double-tap Right ⌥ to lock hands-free (or hold ≥1.5 s and release); tap once to stop. Esc discards a recording in progress.")
+                Text("Double-tap Right ⌥ to lock hands-free; tap once to stop. Esc discards a recording in progress."
+                     + (FeatureFlags.holdToLockHandsFree ? " Holding ≥1.5 s and releasing also locks hands-free." : ""))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -40,10 +41,12 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Toggle("Live preview while speaking", isOn: $settings.streamingPreview)
-                Text("Shows a running transcript in the pill as you talk. It's disposable — the pasted text always comes from the final pass — and falls back silently if the model can't keep up.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if FeatureFlags.streamingPreview {
+                    Toggle("Live preview while speaking", isOn: $settings.streamingPreview)
+                    Text("Shows a running transcript in the pill as you talk. It's disposable — the pasted text always comes from the final pass — and falls back silently if the model can't keep up.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Spoken commands") {

@@ -110,8 +110,14 @@ actor TranscriptionService {
     /// Language ID for one segment, on the small preview model when it's
     /// ready (an encoder pass there is ~5–10× cheaper than on turbo, and it
     /// runs on a separate instance). Falls back to the main model, then "en".
+    /// When the small model was never loaded (streaming preview flagged off),
+    /// kick off a background warm-up so this dictation uses the slower
+    /// fallback but later code-switches get the fast path.
     private static func detectLanguageFast(_ samples: [Float], fallback: WhisperKit) async -> String {
         if let lang = await preview.detectLanguage(samples) { return lang }
+        Task.detached(priority: .background) {
+            await preview.warmUp(model: SettingsStore.previewModel)
+        }
         return (try? await fallback.detectLangauge(audioArray: samples).language) ?? "en"
     }
 
