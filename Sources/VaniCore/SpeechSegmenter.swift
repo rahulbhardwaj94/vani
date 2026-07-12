@@ -45,6 +45,40 @@ public enum SpeechSegmenter {
         }
     }
 
+    /// RMS of each `frameLength`-sample frame — the quantity the energy VAD
+    /// thresholds against.
+    public static func frameRMS(of samples: [Float], frameLength: Int) -> [Float] {
+        guard frameLength > 0, !samples.isEmpty else { return [] }
+        var result: [Float] = []
+        result.reserveCapacity(samples.count / frameLength + 1)
+        var i = 0
+        while i < samples.count {
+            let end = min(i + frameLength, samples.count)
+            var sum: Float = 0
+            for j in i..<end { sum += samples[j] * samples[j] }
+            result.append((sum / Float(end - i)).squareRoot())
+            i += frameLength
+        }
+        return result
+    }
+
+    /// A voice-activity threshold derived from the audio itself. A fixed
+    /// threshold breaks on real microphones: a quiet input (measured speech
+    /// RMS ~0.016 on the reporting user's mic) sits below WhisperKit's 0.02
+    /// default, so the VAD calls nearly all speech silence. Instead, anchor
+    /// on the loud end of the clip (90th percentile ≈ voiced speech) and the
+    /// quiet end (10th percentile ≈ room tone), and put the bar well below
+    /// speech but above the floor. Clamped so pathological clips (all
+    /// silence, clipping) stay sane.
+    public static func adaptiveEnergyThreshold(frameRMS: [Float]) -> Float {
+        guard frameRMS.count >= 5 else { return 0.005 }
+        let sorted = frameRMS.sorted()
+        let floor = sorted[sorted.count / 10]
+        let speech = sorted[sorted.count * 9 / 10]
+        let threshold = max(floor * 2, speech * 0.2)
+        return min(max(threshold, 0.0015), 0.02)
+    }
+
     /// Which of these segments are safely *closed* — fully in the past, with
     /// enough margin after them that the VAD won't extend them as more audio
     /// arrives. The incremental transcriber decodes closed segments while the

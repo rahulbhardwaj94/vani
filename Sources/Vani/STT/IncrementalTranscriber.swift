@@ -120,6 +120,16 @@ final class IncrementalTranscriber {
 
         for seg in closed {
             guard !Task.isCancelled else { return }
+            if seg.end - seg.start < Int(AudioRecorder.targetSampleRate * 0.5) {
+                // A sub-half-second blip (click, breath) isn't dictation;
+                // Whisper legitimately returns nothing for these, so decode
+                // nothing and don't treat the emptiness as an anomaly.
+                VaniLog.log(String(format: "skip blip %.1f-%.1fs",
+                    Double(frontier + seg.start) / Double(Self.sampleRate),
+                    Double(frontier + seg.end) / Double(Self.sampleRate)))
+                frontier += seg.end
+                return
+            }
             let chunk = Array(region[seg.start..<min(seg.end, region.count)])
             let lang: String? = language == "auto"
                 ? await TranscriptionService.shared.detectLanguageAuto(chunk)

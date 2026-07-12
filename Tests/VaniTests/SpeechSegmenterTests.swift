@@ -130,4 +130,31 @@ func speechSegmenterTests() {
         String(SpeechSegmenter.quietestSplit(in: wave, searchRange: 100..<200, windowSamples: 1_600)),
         "150"
     )
+
+    // ── frameRMS + adaptiveEnergyThreshold ──
+    // Constant amplitude → every frame's RMS equals it (last partial too).
+    expect(
+        SpeechSegmenter.frameRMS(of: [Float](repeating: 0.5, count: 250), frameLength: 100)
+            .map { String(format: "%.2f", $0) }.joined(separator: ","),
+        "0.50,0.50,0.50"
+    )
+
+    // Quiet-mic speech (the real-world failure): speech RMS ~0.016, floor
+    // ~0.001. Threshold must land well below 0.016 and above the floor —
+    // the fixed 0.02 default called all of this silence.
+    let quiet = [Float](repeating: 0.001, count: 50) + [Float](repeating: 0.016, count: 50)
+    let tQuiet = SpeechSegmenter.adaptiveEnergyThreshold(frameRMS: quiet)
+    expect(tQuiet > 0.0014 && tQuiet < 0.016 ? "ok" : String(tQuiet), "ok")
+
+    // Loud recording: threshold scales up, still below speech level.
+    let loud = [Float](repeating: 0.01, count: 50) + [Float](repeating: 0.2, count: 50)
+    let tLoud = SpeechSegmenter.adaptiveEnergyThreshold(frameRMS: loud)
+    expect(tLoud > 0.019 && tLoud <= 0.02 ? "ok" : String(tLoud), "ok")
+
+    // All silence: clamped to the floor of the range, never negative/zero.
+    let tSilent = SpeechSegmenter.adaptiveEnergyThreshold(frameRMS: [Float](repeating: 0.0002, count: 100))
+    expect(String(format: "%.4f", tSilent), "0.0015")
+
+    // Too few frames to be statistical: safe default.
+    expect(String(format: "%.3f", SpeechSegmenter.adaptiveEnergyThreshold(frameRMS: [0.1])), "0.005")
 }

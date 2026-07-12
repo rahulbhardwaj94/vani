@@ -175,7 +175,14 @@ actor TranscriptionService {
     /// segment (or none) when there's no clear pause to split on — the caller
     /// then decodes the whole clip in one pass.
     static func speechSegments(in samples: [Float]) -> [(start: Int, end: Int)] {
-        let vad = EnergyVAD(sampleRate: 16_000, frameLength: 0.1, energyThreshold: 0.02)
+        // Threshold adapts to the clip: a fixed 0.02 sat *above* real speech
+        // on a quiet mic, so the VAD saw a 40s dictation as near-total
+        // silence and the incremental path decoded only stray loud slivers.
+        let frameLength = Int(0.1 * 16_000)
+        let threshold = SpeechSegmenter.adaptiveEnergyThreshold(
+            frameRMS: SpeechSegmenter.frameRMS(of: samples, frameLength: frameLength)
+        )
+        let vad = EnergyVAD(sampleRate: 16_000, frameLength: 0.1, energyThreshold: threshold)
         let active = vad.calculateActiveChunks(in: samples)
             .map { (start: $0.startIndex, end: $0.endIndex) }
         return SpeechSegmenter.merge(activeChunks: active, totalSamples: samples.count)
