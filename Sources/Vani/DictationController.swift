@@ -133,6 +133,7 @@ final class DictationController {
         previewTask = nil
         _ = recorder.stop()
         AppState.shared.status = .idle
+        AppState.shared.recordingStartedAt = nil
         AppState.shared.previewTranscript = nil
         AppState.shared.audioLevel = 0
         AppState.shared.isHandsFree = false
@@ -157,6 +158,7 @@ final class DictationController {
             }
             try recorder.start()
             AppState.shared.status = .recording
+            AppState.shared.recordingStartedAt = Date()
             AppState.shared.previewTranscript = nil
             DictationHUD.shared.show()
             NSSound(named: "Pop")?.play()
@@ -221,6 +223,7 @@ final class DictationController {
         previewTask?.cancel()
         previewTask = nil
         AppState.shared.status = .transcribing
+        AppState.shared.recordingStartedAt = nil
         AppState.shared.previewTranscript = nil
         DictationHUD.shared.setPreviewing(false)
         AppState.shared.audioLevel = 0

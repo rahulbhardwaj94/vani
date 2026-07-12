@@ -69,8 +69,10 @@ final class AppState: ObservableObject {
     @Published var previewTranscript: String?
     /// Mic RMS level while recording, 0…~0.3 typical speech. Drives the HUD bars.
     @Published var audioLevel: Float = 0
-    /// True when a ≥3 s hold released into hands-free mode (tap once to stop).
+    /// True when locked into hands-free mode (tap once to stop).
     @Published var isHandsFree = false
+    /// When the current recording started; drives the HUD's elapsed timer.
+    @Published var recordingStartedAt: Date?
 
     private init() {}
 }

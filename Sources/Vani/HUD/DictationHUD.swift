@@ -89,13 +89,15 @@ private struct HUDView: View {
     @ObservedObject private var appState = AppState.shared
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 9) {
             switch appState.status {
             case .recording:
-                EqualizerBars(level: appState.audioLevel)
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.85))
                 if let preview = appState.previewTranscript, !preview.isEmpty {
-                    // Live partial: show the tail (most recent words) on one
-                    // line, dimmed to read as provisional, not final text.
+                    // Live partial (behind FeatureFlags.streamingPreview):
+                    // most recent words, dimmed to read as provisional.
                     Text(preview)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.62))
@@ -103,9 +105,10 @@ private struct HUDView: View {
                         .truncationMode(.head)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    Text("Listening…")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.92))
+                    EqualizerBars(level: appState.audioLevel)
+                }
+                if let startedAt = appState.recordingStartedAt {
+                    ElapsedBadge(since: startedAt)
                 }
                 if appState.isHandsFree {
                     // Hands-free lock engaged: recording continues until a
@@ -115,7 +118,7 @@ private struct HUDView: View {
                         .foregroundStyle(.white.opacity(0.65))
                 }
             case .transcribing, .injecting:
-                ProcessingDots()
+                Spinner()
                 Text("Transcribing…")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.75))
@@ -179,21 +182,40 @@ private struct EqualizerBars: View {
     }
 }
 
-private struct ProcessingDots: View {
+/// Elapsed recording time in a hairline capsule ("0:07"). Reassures during
+/// long hands-free sessions that capture is still running.
+private struct ElapsedBadge: View {
+    let since: Date
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
-            let time = context.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 5) {
-                ForEach(0..<3, id: \.self) { i in
-                    let pulse = 0.5 + 0.5 * sin(time * 5 - Double(i) * 0.9)
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 5, height: 5)
-                        .opacity(0.35 + 0.65 * pulse)
-                        .shadow(color: .white.opacity(0.6 * pulse), radius: 3)
-                        .scaleEffect(0.85 + 0.3 * pulse)
-                }
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let seconds = max(0, Int(context.date.timeIntervalSince(since)))
+            Text(String(format: "%d:%02d", seconds / 60, seconds % 60))
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.7))
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2)
+                .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+        }
+    }
+}
+
+/// Rotating three-quarter arc over a faint full-circle track.
+private struct Spinner: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let turn = context.date.timeIntervalSinceReferenceDate
+                .truncatingRemainder(dividingBy: 0.9) / 0.9
+            ZStack {
+                Circle()
+                    .strokeBorder(.white.opacity(0.25), lineWidth: 2)
+                Circle()
+                    .trim(from: 0, to: 0.72)
+                    .stroke(.white, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .padding(1)
+                    .rotationEffect(.degrees(turn * 360))
             }
+            .frame(width: 14, height: 14)
         }
     }
 }
