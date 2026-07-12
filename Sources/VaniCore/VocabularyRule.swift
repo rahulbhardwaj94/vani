@@ -20,7 +20,14 @@ public enum VocabularyRules {
     /// whitespace around either field is ignored — a rule saved as
     /// "core ml " must never swallow the space after its match
     /// ("core ml to" → "coreMLto").
-    public static func apply(rules: [VocabularyRule], to text: String) -> String {
+    ///
+    /// `swallowTrailingPunctuation` (snippets): also consume one `.`/`,`
+    /// right after the match — Whisper punctuates the pause after a spoken
+    /// trigger, and "…best, Rahul." shouldn't gain a stray period.
+    public static func apply(
+        rules: [VocabularyRule], to text: String,
+        swallowTrailingPunctuation: Bool = false
+    ) -> String {
         var result = text
         for rule in rules {
             let find = rule.find.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -34,6 +41,7 @@ public enum VocabularyRules {
             // ("c++") have no word boundary at their edge, so \b never matches.
             guard let regex = try? NSRegularExpression(
                 pattern: #"(?i)(?<!\w)"# + pattern + #"(?!\w)"#
+                    + (swallowTrailingPunctuation ? #"[.,]?"# : "")
             ) else { continue }
             result = regex.stringByReplacingMatches(
                 in: result,

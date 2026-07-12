@@ -88,6 +88,9 @@ struct MenuContent: View {
             Text(modelStatus)
         }
         Divider()
+        Button("Scratchpad…") {
+            ScratchpadWindow.shared.show()
+        }
         Button("Dashboard…") {
             DashboardWindow.shared.show()
         }

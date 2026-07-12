@@ -327,6 +327,9 @@ final class DictationController {
             text = SymbolCommands.apply(to: text)
             text = CasingCommands.apply(to: text)
         }
+        // Snippets expand before vocabulary so corrections also apply inside
+        // an expansion's trigger match (not its saved text).
+        text = SnippetStore.shared.apply(to: text)
         // Vocabulary corrections run last so they override both Whisper and
         // the LLM (exact casing like "Vani" survives).
         text = VocabularyStore.shared.apply(to: text)

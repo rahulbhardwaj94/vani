@@ -10,6 +10,8 @@ struct DashboardView: View {
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
             VocabularyTab()
                 .tabItem { Label("Vocabulary", systemImage: "character.book.closed") }
+            SnippetsTab()
+                .tabItem { Label("Snippets", systemImage: "text.badge.plus") }
             TeachView()
                 .tabItem { Label("Teach", systemImage: "graduationcap") }
         }
@@ -256,6 +258,87 @@ private struct HistoryRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Snippets
+
+private struct SnippetsTab: View {
+    @ObservedObject private var store = SnippetStore.shared
+    @State private var newTrigger = ""
+    @State private var newExpansion = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Say the trigger phrase while dictating and it expands into the saved text — \"email sign off\" → your full signature. Triggers match whole phrases, anywhere in a dictation.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(10)
+
+            VStack(alignment: .leading, spacing: 6) {
+                TextField("Trigger phrase… (e.g. email sign off)", text: $newTrigger)
+                    .textFieldStyle(.roundedBorder)
+                TextEditor(text: $newExpansion)
+                    .font(.body)
+                    .frame(height: 64)
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.quaternary))
+                    .overlay(alignment: .topLeading) {
+                        if newExpansion.isEmpty {
+                            Text("Expands to… (can be multiple lines)")
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 8)
+                                .padding(.leading, 5)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                HStack {
+                    Spacer()
+                    Button("Add Snippet") {
+                        store.snippets.append(.init(
+                            trigger: newTrigger.trimmingCharacters(in: .whitespaces),
+                            expansion: newExpansion.trimmingCharacters(in: .whitespacesAndNewlines)
+                        ))
+                        newTrigger = ""
+                        newExpansion = ""
+                    }
+                    .disabled(newTrigger.trimmingCharacters(in: .whitespaces).isEmpty
+                              || newExpansion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 8)
+
+            if store.snippets.isEmpty {
+                ContentUnavailableView(
+                    "No snippets yet",
+                    systemImage: "text.badge.plus",
+                    description: Text("Add one above — sign-offs, addresses, templates you say often.")
+                )
+            } else {
+                List {
+                    ForEach(store.snippets) { snippet in
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack {
+                                Text("“\(snippet.trigger)”").bold()
+                                Spacer()
+                                Button(role: .destructive) {
+                                    store.snippets.removeAll { $0.id == snippet.id }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                            Text(snippet.expansion)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(3)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .listStyle(.inset)
+            }
+        }
     }
 }
 

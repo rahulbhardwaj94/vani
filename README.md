@@ -66,6 +66,8 @@ A minimal monochrome pill shows voice-reactive bars and a live running transcrip
 - ✨ **Two-stage cleanup** — instant regex pass, plus an optional local-LLM polish with a paraphrase guard (if the LLM rewrites instead of cleaning, its output is discarded)
 - 📚 **Dictation history** — searchable, persistent, with one-click copy
 - 📖 **Custom vocabulary** — teach it names it mishears; your casing always wins
+- ✂️ **Voice snippets** — "email sign off" expands to your saved signature; any phrase → any block of text
+- 📝 **Scratchpad** — a persistent window to dictate into and copy from whenever; your voice notes' home between apps
 - 📋 **Clipboard-safe** — saves and restores whatever you had copied
 - 🔐 **Secure-input aware** — refuses to inject into password fields, by design
 - 🚫 **No Xcode required** — builds with Swift Package Manager + Command Line Tools alone
