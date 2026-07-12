@@ -54,6 +54,7 @@ A minimal monochrome pill shows voice-reactive bars and a live running transcrip
 ## Features
 
 - 🎙 **Push-to-talk, hands-free & toggle** — hold Right Option to talk; double-tap it to lock hands-free for long dictations (tap once to stop); Esc discards a recording; or use a customizable chord (default ⌥⌘D)
+- ⚡ **~1 s from stop to text, at any length** — chunks are transcribed *while you speak*, so a 2-minute dictation pastes as fast as a 10-second one (measured: 45 s of audio → 0.9 s)
 - 🔒 **100% offline** — Whisper + LLM both run on-device; works in airplane mode
 - 🌊 **Live waveform HUD** — monochrome, voice-reactive, follows you across displays, never steals focus
 - 👀 **Live preview** *(experimental, off by default — `FeatureFlags.streamingPreview`)* — a running transcript in the pill as you speak; disabled while the small preview model's noise hallucinations and latency get tuned
@@ -75,6 +76,16 @@ A minimal monochrome pill shows voice-reactive bars and a live running transcrip
 - [Ollama](https://ollama.com) *(optional — only for the LLM polish pass)*
 
 ## Quick start
+
+### Homebrew (recommended)
+
+```sh
+brew install --cask rahulbhardwaj94/tap/vani
+```
+
+Then **right-click Vani.app in /Applications → Open** the first time (the app is self-signed, not notarized — macOS will warn once). Optional: `ollama pull gemma3:1b` for the LLM polish pass.
+
+### Build from source
 
 ```sh
 git clone https://github.com/rahulbhardwaj94/vani.git
@@ -154,7 +165,7 @@ In build order — detailed specs in [docs/spec-v0.2.md](docs/spec-v0.2.md):
 - [x] Spoken commands, English **and** Hindi ("new line" / "नई लाइन")
 - [x] Code-switch detection — per-segment language decode (English + Hindi in one utterance)
 - [ ] Hinglish normalization — optional consistent script (romanized ↔ Devanagari) on top of code-switch output
-- [ ] Homebrew cask (`brew install --cask …/vani`)
+- [x] Homebrew cask — `brew install --cask rahulbhardwaj94/tap/vani`
 - [ ] Per-app profiles (e.g. no LLM polish in terminals)
 - [ ] Vocabulary → Whisper prompt biasing, Esc-to-cancel, scratchpad fallback
 - [ ] Parakeet (FluidAudio) as a faster alternative STT engine
