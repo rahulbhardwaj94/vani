@@ -20,7 +20,12 @@ public enum TranscriptDiff {
     /// ("hindi" → "Hindi" is a useful casing rule); punctuation-only ones
     /// don't. Pure insertions/deletions are ignored on their own — a rule
     /// needs something to match on both sides.
-    public static func mishears(expected: String, heard: String) -> [Mishear] {
+    /// `includeCaseOnly`: when true (vocab learning), a raw-case difference
+    /// on fold-equal words ("hindi"/"Hindi") is reported as a mishear pair;
+    /// when false (accuracy counting), fold-equal words are plain matches.
+    public static func mishears(
+        expected: String, heard: String, includeCaseOnly: Bool = true
+    ) -> [Mishear] {
         let exp = tokens(of: expected)
         let hrd = tokens(of: heard)
         guard !exp.isEmpty, !hrd.isEmpty else { return [] }
@@ -50,7 +55,7 @@ public enum TranscriptDiff {
         while i > 0 || j > 0 {
             if i > 0, j > 0, hrd[i - 1].folded == exp[j - 1].folded {
                 // Exact fold match — but a raw-case difference is a rule too.
-                if hrd[i - 1].clean != exp[j - 1].clean {
+                if includeCaseOnly, hrd[i - 1].clean != exp[j - 1].clean {
                     if current == nil { current = ([], []) }
                     current!.heard.insert(hrd[i - 1], at: 0)
                     current!.expected.insert(exp[j - 1], at: 0)
@@ -83,6 +88,16 @@ public enum TranscriptDiff {
                   heardText != expectedText else { return nil }
             return Mishear(heard: heardText, expected: expectedText)
         }
+    }
+
+    /// How many words of the final text had to be *changed* from what the
+    /// model heard — the per-dictation accuracy metric. Case-only and
+    /// punctuation-only differences don't count (cleanup, not mishears);
+    /// removed fillers and command phrases don't count (deletions have no
+    /// "wrong word" on the final side).
+    public static func correctedWordCount(raw: String, final: String) -> Int {
+        mishears(expected: final, heard: raw, includeCaseOnly: false)
+            .reduce(0) { $0 + $1.expected.split(whereSeparator: \.isWhitespace).count }
     }
 
     private struct Token {

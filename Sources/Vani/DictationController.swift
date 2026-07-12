@@ -298,11 +298,19 @@ final class DictationController {
             raw.count, path, Date().timeIntervalSince(started)))
         guard !raw.isEmpty else { return }
 
-        var text = TextCleaner.clean(raw)
+        // Code mode: the paste target is a terminal/editor, so prose
+        // conventions (auto-caps, trailing period, LLM polish) get out of
+        // the way and spoken casing ("camel case user name") switches on.
+        let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
+        let codeMode = settings.codeModeEnabled
+            && SettingsStore.codeAppBundlePrefixes.contains(where: bundleID.hasPrefix)
+        if codeMode { VaniLog.log("code mode for \(bundleID)") }
+
+        var text = TextCleaner.clean(raw, codeMode: codeMode)
         // The 1B cleanup model helps short dictations (fillers, punctuation)
         // but drops sentences and mangles casing beyond a few sentences —
         // Whisper's own punctuation is already good there, so skip it.
-        if settings.llmCleanupEnabled && text.count <= 350 {
+        if settings.llmCleanupEnabled && text.count <= 350 && !codeMode {
             text = await OllamaClient().cleanup(text, model: settings.ollamaModel)
         }
         // Spoken commands ("new line", "full stop", "scratch that") run after
@@ -310,6 +318,9 @@ final class DictationController {
         // vocabulary. An empty result means the dictation was discarded.
         if settings.spokenCommandsEnabled {
             text = CommandProcessor.apply(to: text)
+        }
+        if codeMode {
+            text = CasingCommands.apply(to: text)
         }
         // Vocabulary corrections run last so they override both Whisper and
         // the LLM (exact casing like "Vani" survives).
@@ -323,7 +334,8 @@ final class DictationController {
             raw: raw,
             audioSeconds: Double(samples.count) / AudioRecorder.targetSampleRate,
             processingSeconds: Date().timeIntervalSince(started),
-            engine: path
+            engine: path,
+            correctedWords: TranscriptDiff.correctedWordCount(raw: raw, final: text)
         )
         _ = await TextInjector.insert(text) // hides the HUD itself at paste time
 

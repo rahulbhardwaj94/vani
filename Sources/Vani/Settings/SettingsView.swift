@@ -56,6 +56,13 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Code mode") {
+                Toggle("Developer-aware dictation in terminals & editors", isOn: $settings.codeModeEnabled)
+                Text("In Terminal, iTerm, VS Code, Cursor, Xcode, JetBrains IDEs and friends: no auto-capitalization, no trailing period, LLM polish off — and spoken casing works: \"camel case get user name\" → getUserName (also snake, kebab, pascal, screaming snake).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Cleanup") {
                 Toggle("Polish text with local LLM (Ollama)", isOn: $settings.llmCleanupEnabled)
                 if settings.llmCleanupEnabled {

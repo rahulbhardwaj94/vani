@@ -46,6 +46,20 @@ final class SettingsStore: ObservableObject {
     @Published var streamingPreview: Bool {
         didSet { UserDefaults.standard.set(streamingPreview, forKey: "streamingPreview") }
     }
+    @Published var codeModeEnabled: Bool {
+        didSet { UserDefaults.standard.set(codeModeEnabled, forKey: "codeModeEnabled") }
+    }
+
+    /// Bundle ids treated as code contexts: terminals, editors, IDEs.
+    /// Prefix match so JetBrains' per-IDE ids are covered in one entry.
+    static let codeAppBundlePrefixes = [
+        "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp",
+        "com.github.wez.wezterm", "net.kovidgoyal.kitty", "io.alacritty",
+        "com.mitchellh.ghostty", "com.microsoft.VSCode",
+        "com.todesktop.230313mzl4w4u92", // Cursor
+        "dev.zed.Zed", "com.apple.dt.Xcode", "com.sublimetext",
+        "com.jetbrains.", "org.vim.MacVim", "com.neovide.neovide",
+    ]
     @Published var ollamaModel: String {
         didSet { UserDefaults.standard.set(ollamaModel, forKey: "ollamaModel") }
     }
@@ -62,6 +76,7 @@ final class SettingsStore: ObservableObject {
         llmCleanupEnabled = defaults.object(forKey: "llmCleanupEnabled") as? Bool ?? false
         spokenCommandsEnabled = defaults.object(forKey: "spokenCommandsEnabled") as? Bool ?? true
         streamingPreview = defaults.object(forKey: "streamingPreview") as? Bool ?? true
+        codeModeEnabled = defaults.object(forKey: "codeModeEnabled") as? Bool ?? true
         ollamaModel = defaults.string(forKey: "ollamaModel") ?? "gemma3:1b"
     }
 }

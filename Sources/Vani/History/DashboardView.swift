@@ -76,10 +76,24 @@ private struct StatsTab: View {
         return waits.reduce(0, +) / Double(waits.count)
     }
 
+    /// Share of words the model heard right over the last 30 days: words
+    /// that needed no pipeline correction / total words dictated.
+    private var accuracy: Double? {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: .now)!
+        var corrected = 0, total = 0
+        for entry in store.entries where entry.date >= cutoff {
+            guard let fixes = entry.correctedWords else { continue }
+            corrected += fixes
+            total += entry.text.split(whereSeparator: \.isWhitespace).count
+        }
+        guard total > 0 else { return nil }
+        return (1 - Double(corrected) / Double(total)) * 100
+    }
+
     var body: some View {
         let periods = self.periods
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
                 StatTile(
                     title: "Time saved (all time)",
                     value: Self.duration(periods.last!.savedSeconds),
@@ -99,6 +113,11 @@ private struct StatsTab: View {
                     title: "Stop → text (last 10)",
                     value: recentLatency.map { String(format: "%.1fs", $0) } ?? "—",
                     symbol: "bolt"
+                )
+                StatTile(
+                    title: "Accuracy (30 days)",
+                    value: accuracy.map { String(format: "%.1f%%", $0) } ?? "—",
+                    symbol: "scope"
                 )
             }
             .padding(12)
@@ -209,6 +228,9 @@ private struct HistoryRow: View {
                     // ⚡ = incremental (decoded while speaking); no bolt =
                     // classic full decode after stop.
                     Text("· ready in \(wait, format: .number.precision(.fractionLength(1)))s\(entry.engine == "incremental" ? " ⚡" : "")")
+                }
+                if let fixes = entry.correctedWords, fixes > 0 {
+                    Text("· \(fixes) fixed")
                 }
                 Spacer()
                 Button {

@@ -20,6 +20,10 @@ final class TranscriptStore: ObservableObject {
         /// "incremental" (chunks decoded while speaking) or "classic"
         /// (full decode after stop). Optional on older entries.
         let engine: String?
+        /// Words the pipeline had to change from what the model heard
+        /// (vocabulary fixes etc.) — drives the accuracy stat. Optional on
+        /// older entries.
+        let correctedWords: Int?
     }
 
     @Published private(set) var entries: [Entry] = []
@@ -35,10 +39,12 @@ final class TranscriptStore: ObservableObject {
     }
 
     func add(text: String, raw: String? = nil, audioSeconds: Double,
-             processingSeconds: Double? = nil, engine: String? = nil) {
+             processingSeconds: Double? = nil, engine: String? = nil,
+             correctedWords: Int? = nil) {
         entries.insert(
             Entry(id: UUID(), date: .now, text: text, raw: raw, audioSeconds: audioSeconds,
-                  processingSeconds: processingSeconds, engine: engine),
+                  processingSeconds: processingSeconds, engine: engine,
+                  correctedWords: correctedWords),
             at: 0
         )
         if entries.count > Self.maxEntries {

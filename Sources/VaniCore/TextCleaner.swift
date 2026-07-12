@@ -8,7 +8,10 @@ public enum TextCleaner {
         pattern: #"(?i)(?<![\w'])(um+|uh+|erm+|hmm+)(?![\w'])[,]?\s*"#
     )
 
-    public static func clean(_ text: String) -> String {
+    /// `codeMode`: cleaning for terminals/editors — no auto-capitalization
+    /// and no trailing sentence period, because `git statuS.` isn't a
+    /// command and prose conventions have no business in a shell.
+    public static func clean(_ text: String, codeMode: Bool = false) -> String {
         var result = text
 
         let range = NSRange(result.startIndex..., in: result)
@@ -30,6 +33,16 @@ public enum TextCleaner {
         result = result.replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
         result = result.replacingOccurrences(of: #"\s+([,.!?;:])"#, with: "$1", options: .regularExpression)
         result = result.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if codeMode {
+            // Strip the single trailing period Whisper appends to speech —
+            // fatal in a terminal, unwanted at a code cursor. Ellipses and
+            // other punctuation stay.
+            if result.hasSuffix("."), !result.hasSuffix("..") {
+                result = String(result.dropLast())
+            }
+            return result
+        }
 
         // Capitalize first letter if Whisper didn't.
         if let first = result.first, first.isLowercase {

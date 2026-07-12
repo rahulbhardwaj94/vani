@@ -59,6 +59,8 @@ A minimal monochrome pill shows voice-reactive bars and a live running transcrip
 - 🌊 **Live waveform HUD** — monochrome, voice-reactive, follows you across displays, never steals focus
 - 👀 **Live preview** *(experimental, off by default — `FeatureFlags.streamingPreview`)* — a running transcript in the pill as you speak; disabled while the small preview model's noise hallucinations and latency get tuned
 - 🗣 **Spoken commands, English & Hindi** — "new line" / "नई लाइन", "full stop", "question mark", "scratch that" to discard; deterministic rules, never an LLM
+- 👨‍💻 **Code mode** — in terminals and editors (VS Code, Cursor, Xcode, JetBrains, iTerm…): no auto-caps, no trailing period, and spoken casing — "camel case get user name" → `getUserName`
+- 🎯 **Accuracy you can see** — every dictation records how many words needed fixing; the dashboard shows your rolling 30-day accuracy
 - 🌐 **Code-switch aware** — speak English then Hindi in one breath and each part is transcribed in its own language (English in Latin, Hindi in Devanagari), instead of the whole clip being force-decoded as one language
 - 📊 **Stats dashboard** — dictations, words, and time saved vs typing by day/week/month/year
 - ✨ **Two-stage cleanup** — instant regex pass, plus an optional local-LLM polish with a paraphrase guard (if the LLM rewrites instead of cleaning, its output is discarded)
