@@ -16,6 +16,7 @@ struct VaniApp: App {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Menu-bar only by default; LSUIElement in Info.plist hides the Dock
