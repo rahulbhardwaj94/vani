@@ -29,6 +29,9 @@ final class DictationController {
 
     /// The live-preview re-decode loop; runs only while recording.
     private var previewTask: Task<Void, Never>?
+    /// Decodes closed chunks in the background during long dictations so
+    /// stopping only waits for the tail.
+    private var incremental: IncrementalTranscriber?
 
     private init() {}
 
@@ -131,6 +134,8 @@ final class DictationController {
         awaitingSecondTap = nil
         previewTask?.cancel()
         previewTask = nil
+        incremental?.cancel()
+        incremental = nil
         _ = recorder.stop()
         AppState.shared.status = .idle
         AppState.shared.recordingStartedAt = nil
@@ -163,6 +168,13 @@ final class DictationController {
             DictationHUD.shared.show()
             NSSound(named: "Pop")?.play()
             startPreviewLoop()
+            let inc = IncrementalTranscriber(
+                model: SettingsStore.shared.whisperModel,
+                language: SettingsStore.shared.language,
+                snapshot: { [recorder] in recorder.snapshot() }
+            )
+            inc.start()
+            incremental = inc
         } catch {
             NSLog("Vani: failed to start recording: \(error.localizedDescription)")
         }
@@ -255,15 +267,25 @@ final class DictationController {
         let settings = SettingsStore.shared
         let started = Date()
 
-        let raw: String
-        do {
-            raw = try await TranscriptionService.shared.transcribe(
-                samples: samples, model: settings.whisperModel,
-                language: settings.language
-            )
-        } catch {
-            NSLog("Vani: transcription failed: %@", error.localizedDescription)
-            return
+        // Long dictation: most chunks were decoded while speaking, so this
+        // only waits for the tail. Short dictation (or a failed incremental
+        // run): the classic single pass, with its code-switch grouping.
+        let pending = incremental
+        incremental = nil
+        var raw = ""
+        if let pending {
+            raw = await pending.finish(fullSamples: samples) ?? ""
+        }
+        if raw.isEmpty {
+            do {
+                raw = try await TranscriptionService.shared.transcribe(
+                    samples: samples, model: settings.whisperModel,
+                    language: settings.language
+                )
+            } catch {
+                NSLog("Vani: transcription failed: %@", error.localizedDescription)
+                return
+            }
         }
         guard !raw.isEmpty else { return }
 

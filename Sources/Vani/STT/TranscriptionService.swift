@@ -127,6 +127,34 @@ actor TranscriptionService {
         return try? await whisperKit.detectLangauge(audioArray: samples).language
     }
 
+    /// Language ID for the incremental transcriber: small model when ready
+    /// (warms it lazily), own model otherwise, "en" as last resort.
+    func detectLanguageAuto(_ samples: [Float]) async -> String {
+        guard let whisperKit else { return "en" }
+        return await Self.detectLanguageFast(samples, fallback: whisperKit)
+    }
+
+    /// One chunk of an incremental dictation.
+    ///
+    /// Deliberately NO cross-chunk prompt: `DecodingOptions.promptTokens` is
+    /// broken in argmax-oss-swift 1.0.0 — any prompt makes the decoder emit
+    /// <|endoftext|> as its first sampled token, producing empty text
+    /// (verified empirically against real audio; plain-text prompt tokens,
+    /// filtered specials, and disabled thresholds all fail identically).
+    /// Chunks are pause-bounded phrases, so decoding them cold costs a bit
+    /// of boundary punctuation, not correctness. Revisit on library upgrade.
+    func decodeChunk(samples: [Float], model: String, language: String?) async throws -> String {
+        if state != .ready || loadedModel != model {
+            await warmUp(model: model)
+        }
+        guard let whisperKit, state == .ready else {
+            throw NSError(domain: "Vani.stt", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Speech model is not loaded."
+            ])
+        }
+        return try await decode(samples, language: language, on: whisperKit)
+    }
+
     /// One Whisper decode. `language == nil` auto-detects; a code decodes in
     /// that language.
     private func decode(_ samples: [Float], language: String?, on whisperKit: WhisperKit) async throws -> String {

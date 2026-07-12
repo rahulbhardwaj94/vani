@@ -45,6 +45,46 @@ public enum SpeechSegmenter {
         }
     }
 
+    /// Which of these segments are safely *closed* — fully in the past, with
+    /// enough margin after them that the VAD won't extend them as more audio
+    /// arrives. The incremental transcriber decodes closed segments while the
+    /// user is still speaking; the still-growing last segment never qualifies.
+    public static func closedSegments(
+        segments: [(start: Int, end: Int)],
+        totalSamples: Int,
+        sampleRate: Int = 16_000,
+        closeMarginSeconds: Double = 0.6
+    ) -> [(start: Int, end: Int)] {
+        let margin = Int(Double(sampleRate) * closeMarginSeconds)
+        return segments.filter { $0.end + margin <= totalSamples }
+    }
+
+    /// The quietest split point within `searchRange` of the samples: center of
+    /// the minimum-RMS window. Used to force-close a chunk when someone talks
+    /// for a very long time without ever pausing long enough for the VAD.
+    public static func quietestSplit(
+        in samples: [Float],
+        searchRange: Range<Int>,
+        windowSamples: Int = 1_600
+    ) -> Int {
+        let range = searchRange.clamped(to: 0..<samples.count)
+        guard range.count > windowSamples else { return range.lowerBound + range.count / 2 }
+
+        var best = range.lowerBound
+        var bestEnergy = Float.greatestFiniteMagnitude
+        var i = range.lowerBound
+        while i + windowSamples <= range.upperBound {
+            var sum: Float = 0
+            for j in i..<(i + windowSamples) { sum += samples[j] * samples[j] }
+            if sum < bestEnergy {
+                bestEnergy = sum
+                best = i
+            }
+            i += windowSamples / 2
+        }
+        return best + windowSamples / 2
+    }
+
     /// Collapse adjacent segments that detected the same language into one
     /// span (first start → last end, silence between them included). The
     /// split threshold is deliberately eager so a code-switch with only a

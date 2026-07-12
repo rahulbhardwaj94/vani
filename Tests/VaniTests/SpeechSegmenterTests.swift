@@ -93,4 +93,41 @@ func speechSegmenterTests() {
         "0-100:hi"
     )
     expect(fmtG(SpeechSegmenter.groupByLanguage(segments: [], languages: [])), "")
+
+    // ── closedSegments ──
+    // First segment ends 1.4s before the buffer end → closed; the second
+    // ends 0.4s before (< 0.6s margin) → still growing, not closed.
+    expect(
+        fmt(SpeechSegmenter.closedSegments(
+            segments: [(sr, sr * 2), (sr * 26 / 10, sr * 36 / 10)],
+            totalSamples: sr * 4
+        )),
+        "16000-32000"
+    )
+    // Ends exactly margin before the buffer end → closed (boundary case).
+    expect(
+        fmt(SpeechSegmenter.closedSegments(
+            segments: [(0, sr)],
+            totalSamples: sr + Int(0.6 * Double(sr))
+        )),
+        "0-16000"
+    )
+    // Nothing far enough in the past → nothing closed.
+    expect(
+        fmt(SpeechSegmenter.closedSegments(segments: [(0, sr)], totalSamples: sr)),
+        ""
+    )
+
+    // ── quietestSplit ──
+    // Loud everywhere except a silent dip at 2.0–2.2s: the split lands in it.
+    var wave = [Float](repeating: 0.5, count: sr * 3)
+    for i in (sr * 2)..<(sr * 22 / 10) { wave[i] = 0 }
+    let cut = SpeechSegmenter.quietestSplit(in: wave, searchRange: sr..<(sr * 3))
+    expect(cut >= sr * 2 && cut <= sr * 22 / 10 ? "in-dip" : "at-\(cut)", "in-dip")
+
+    // Search range shorter than the window: falls back to the midpoint.
+    expect(
+        String(SpeechSegmenter.quietestSplit(in: wave, searchRange: 100..<200, windowSamples: 1_600)),
+        "150"
+    )
 }
