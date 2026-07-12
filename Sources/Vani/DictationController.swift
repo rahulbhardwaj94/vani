@@ -273,8 +273,10 @@ final class DictationController {
         let pending = incremental
         incremental = nil
         var raw = ""
+        var path = "classic"
         if let pending {
             raw = await pending.finish(fullSamples: samples) ?? ""
+            if !raw.isEmpty { path = "incremental" }
         }
         if raw.isEmpty {
             do {
@@ -283,10 +285,13 @@ final class DictationController {
                     language: settings.language
                 )
             } catch {
-                NSLog("Vani: transcription failed: %@", error.localizedDescription)
+                VaniLog.log("transcription failed: \(error.localizedDescription)")
                 return
             }
         }
+        VaniLog.log(String(format: "dictation %.1fs audio → %d chars via %@ in %.2fs",
+            Double(samples.count) / AudioRecorder.targetSampleRate,
+            raw.count, path, Date().timeIntervalSince(started)))
         guard !raw.isEmpty else { return }
 
         var text = TextCleaner.clean(raw)

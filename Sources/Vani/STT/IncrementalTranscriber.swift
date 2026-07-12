@@ -33,6 +33,11 @@ final class IncrementalTranscriber {
     /// Absolute sample index up to which audio has been decoded.
     private var frontier = 0
     private var monitor: Task<Void, Never>?
+    /// Set when anything anomalous happens (a chunk decoded to empty text, a
+    /// decode threw). Correctness beats latency: a degraded run abandons all
+    /// pre-decoded parts and finish() returns nil so the caller re-decodes
+    /// the *entire* buffer on the classic path — words can never be lost.
+    private var degraded = false
 
     init(model: String, language: String, snapshot: @escaping () -> [Float]) {
         self.model = model
@@ -44,7 +49,7 @@ final class IncrementalTranscriber {
         monitor = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(Self.tickSeconds))
-                guard !Task.isCancelled, let self else { return }
+                guard !Task.isCancelled, let self, !self.degraded else { return }
                 await self.decodeNewlyClosedChunks(in: self.snapshot())
             }
         }
@@ -63,23 +68,33 @@ final class IncrementalTranscriber {
         // Wait out any in-flight chunk decode so `parts`/`frontier` are final.
         await monitor?.value
         monitor = nil
+        if degraded {
+            VaniLog.log("incremental DEGRADED → classic full decode")
+            return nil
+        }
         guard frontier > 0 else { return nil }
 
         let tail = Array(fullSamples[min(frontier, fullSamples.count)...])
         if tail.count >= Int(AudioRecorder.targetSampleRate * 0.3) {
-            // The tail is post-last-pause, so treat it as single-language:
-            // detect (cheap, small model) and decode with running context.
+            // The tail is post-last-pause, so treat it as single-language.
             let lang: String? = language == "auto"
                 ? await TranscriptionService.shared.detectLanguageAuto(tail)
                 : language
-            if let text = try? await TranscriptionService.shared.decodeChunk(
+            let text = (try? await TranscriptionService.shared.decodeChunk(
                 samples: tail, model: model, language: lang
-            ), !text.isEmpty {
-                parts.append(text)
+            )) ?? ""
+            VaniLog.log(String(format: "tail %.1fs [%@] → %d chars",
+                Double(tail.count) / Double(Self.sampleRate), lang ?? "auto", text.count))
+            if text.isEmpty {
+                // A silent tail is plausible (trailing room tone), but we
+                // can't tell it apart from a failed decode — replay the
+                // whole buffer classically rather than risk dropped words.
+                VaniLog.log("empty tail → classic full decode")
+                return nil
             }
+            parts.append(text)
         }
-        NSLog("Vani: incremental finish — %d chunks pre-decoded, %.1fs tail",
-              parts.count, Double(tail.count) / Double(Self.sampleRate))
+        VaniLog.log("incremental finish: \(parts.count) parts, frontier \(frontier)")
         return parts.joined(separator: " ")
     }
 
@@ -109,21 +124,36 @@ final class IncrementalTranscriber {
             let lang: String? = language == "auto"
                 ? await TranscriptionService.shared.detectLanguageAuto(chunk)
                 : language
+            var rms: Float = 0
+            for s in chunk { rms += s * s }
+            rms = (rms / Float(max(chunk.count, 1))).squareRoot()
             do {
+                let started = Date()
                 let text = try await TranscriptionService.shared.decodeChunk(
                     samples: chunk, model: model, language: lang
                 )
-                if !text.isEmpty { parts.append(text) }
-                // Advance even for empty text: the audio was silence/noise.
+                VaniLog.log(String(format: "chunk %.1f-%.1fs [%@] rms %.4f → %d chars in %.2fs",
+                    Double(frontier + seg.start) / Double(Self.sampleRate),
+                    Double(frontier + seg.end) / Double(Self.sampleRate),
+                    lang ?? "auto", rms, text.count, Date().timeIntervalSince(started)))
+                guard !text.isEmpty else {
+                    // The VAD called this voiced audio, yet the decode came
+                    // back empty — something is off (quiet mic tripping
+                    // no-speech thresholds, a model hiccup). Don't guess:
+                    // mark the run degraded so the classic full decode
+                    // replays everything.
+                    degraded = true
+                    return
+                }
+                parts.append(text)
                 frontier += seg.end
                 // Segment indices after the first are relative to the old
                 // frontier; simplest correct move is one chunk per pass and
                 // re-segment next tick from the new frontier.
                 return
             } catch {
-                // Leave the frontier: the tail decode at finish() covers
-                // everything after it, so a failed chunk costs latency only.
-                NSLog("Vani: incremental chunk decode failed: %@", error.localizedDescription)
+                VaniLog.log("chunk decode threw: \(error.localizedDescription) → degraded")
+                degraded = true
                 return
             }
         }
