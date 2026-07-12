@@ -73,6 +73,8 @@ final class AppState: ObservableObject {
     @Published var isHandsFree = false
     /// When the current recording started; drives the HUD's elapsed timer.
     @Published var recordingStartedAt: Date?
+    /// Model download/load progress text; nil when the model is ready.
+    @Published var modelStatus: String?
 
     private init() {}
 }
@@ -82,6 +84,9 @@ struct MenuContent: View {
 
     var body: some View {
         Text("Vani — \(appState.status.label)")
+        if let modelStatus = appState.modelStatus {
+            Text(modelStatus)
+        }
         Divider()
         Button("Dashboard…") {
             DashboardWindow.shared.show()

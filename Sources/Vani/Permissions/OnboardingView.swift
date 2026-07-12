@@ -2,6 +2,8 @@ import SwiftUI
 
 struct OnboardingView: View {
     @ObservedObject var permissions = PermissionsManager.shared
+    @ObservedObject private var appState = AppState.shared
+    @State private var tryItText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -30,9 +32,37 @@ struct OnboardingView: View {
                 action: { permissions.requestInputMonitoring() }
             )
 
+            // First launch downloads the Whisper model; without this row the
+            // app looks broken for the minutes that takes.
+            HStack {
+                if appState.modelStatus == nil {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.title3)
+                } else {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                VStack(alignment: .leading) {
+                    Text("Speech model").font(.headline)
+                    Text(appState.modelStatus ?? "Ready — transcription runs entirely on this Mac.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(10)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
+
             if permissions.allGranted {
-                Label("All set — you can close this window.", systemImage: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
+                Divider()
+                Text("Try it now")
+                    .font(.headline)
+                Text("Click into the field below, hold **Right ⌥ (Option)**, say something, and release.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField("Your words land here…", text: $tryItText)
+                    .textFieldStyle(.roundedBorder)
             } else {
                 Text("After enabling a permission in System Settings, this list updates automatically.")
                     .font(.caption)

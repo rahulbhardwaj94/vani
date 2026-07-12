@@ -33,19 +33,38 @@ actor TranscriptionService {
 
         do {
             state = .downloading
+            publishState()
             NSLog("Vani: loading Whisper model '%@'…", model)
             let config = WhisperKitConfig(model: model)
             config.prewarm = true
             state = .loading
+            publishState()
             let kit = try await WhisperKit(config)
             whisperKit = kit
             loadedModel = model
             state = .ready
+            publishState()
             NSLog("Vani: Whisper model ready")
         } catch {
             state = .failed(error.localizedDescription)
+            publishState()
             NSLog("Vani: Whisper load failed: %@", error.localizedDescription)
         }
+    }
+
+    /// Surface the main pipeline's model state to the UI (onboarding row,
+    /// menu) — a first launch downloads ~1.6 GB and without this the user
+    /// just sees a silent app and assumes it's broken. Only the shared
+    /// instance publishes; the preview model stays invisible.
+    private func publishState() {
+        guard self === Self.shared else { return }
+        let text: String? = switch state {
+        case .downloading: "Downloading speech model (~1.6 GB, one time)…"
+        case .loading: "Loading speech model…"
+        case .failed(let message): "Speech model failed: \(message)"
+        case .ready, .unloaded: nil
+        }
+        Task { @MainActor in AppState.shared.modelStatus = text }
     }
 
     /// Transcribes 16 kHz mono Float32 samples; returns the raw transcript.
