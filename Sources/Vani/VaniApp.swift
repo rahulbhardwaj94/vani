@@ -30,6 +30,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in }
     }
+
+    /// Menu-bar apps have no Dock icon, and a crowded menu bar (or the
+    /// notch) can hide the status item — leaving no way into the app at
+    /// all. Launching Vani again (double-click in Applications, Launchpad,
+    /// Spotlight) lands here: open the Dashboard.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        DashboardWindow.shared.show()
+        return true
+    }
 }
 
 /// Global app status, drives the menu-bar icon.
