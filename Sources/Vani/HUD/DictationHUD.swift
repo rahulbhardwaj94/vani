@@ -126,7 +126,7 @@ private struct HUDView: View {
                 EmptyView()
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MonoGlass())
         .clipShape(Capsule())
@@ -154,7 +154,7 @@ private struct MonoGlass: View {
 /// each on its own rhythm, driven louder by the mic level.
 private struct EqualizerBars: View {
     let level: Float
-    private let barCount = 6
+    private let barCount = 9
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
@@ -163,10 +163,10 @@ private struct EqualizerBars: View {
                 ForEach(0..<barCount, id: \.self) { i in
                     // Two offset sines per bar so neighbours never sync up.
                     let phase = Double(i) * 0.9
-                    let bounce = 0.30
-                        + 0.50 * abs(sin(time * 3.6 + phase))
+                    let bounce = 0.22
+                        + 0.58 * abs(sin(time * 3.6 + phase))
                         + 0.20 * abs(sin(time * 2.1 + phase * 1.7))
-                    let drive = 0.35 + min(CGFloat(level) * 10, 1) * 0.65
+                    let drive = 0.30 + min(CGFloat(level) * 10, 1) * 0.70
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -174,10 +174,10 @@ private struct EqualizerBars: View {
                                 startPoint: .bottom, endPoint: .top
                             )
                         )
-                        .frame(width: 3, height: max(4, 18 * bounce * drive))
+                        .frame(width: 1.6, height: max(3, 28 * bounce * drive))
                 }
             }
-            .frame(width: 30, height: 20)
+            .frame(width: 38, height: 28)
         }
     }
 }
