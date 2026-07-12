@@ -87,7 +87,7 @@ public enum SpeechSegmenter {
         segments: [(start: Int, end: Int)],
         totalSamples: Int,
         sampleRate: Int = 16_000,
-        closeMarginSeconds: Double = 0.6
+        closeMarginSeconds: Double = 0.5
     ) -> [(start: Int, end: Int)] {
         let margin = Int(Double(sampleRate) * closeMarginSeconds)
         return segments.filter { $0.end + margin <= totalSamples }

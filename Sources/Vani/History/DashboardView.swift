@@ -10,6 +10,8 @@ struct DashboardView: View {
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
             VocabularyTab()
                 .tabItem { Label("Vocabulary", systemImage: "character.book.closed") }
+            TeachView()
+                .tabItem { Label("Teach", systemImage: "graduationcap") }
         }
         .frame(width: 560, height: 420)
     }

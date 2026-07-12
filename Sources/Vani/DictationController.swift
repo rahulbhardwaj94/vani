@@ -242,11 +242,15 @@ final class DictationController {
         AppState.shared.isHandsFree = false
         pttDownAt = nil
 
+        // Overlap the grace window with tail language detection: the answer
+        // is usually ready before the recorder even stops.
+        incremental?.prepareFinish()
+
         Task {
             // Grace period: people release the key while the last word is
-            // still leaving their mouth. Capture 300 ms more before stopping
+            // still leaving their mouth. Capture 200 ms more before stopping
             // so the tail isn't clipped ("…on its" instead of "…on its own").
-            try? await Task.sleep(for: .milliseconds(300))
+            try? await Task.sleep(for: .milliseconds(200))
             let samples = recorder.stop()
             NSSound(named: "Bottle")?.play()
 

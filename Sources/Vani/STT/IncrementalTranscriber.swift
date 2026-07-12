@@ -46,6 +46,10 @@ final class IncrementalTranscriber {
     /// second empty on the merged span degrades. If recording stops first,
     /// the tail (which starts at the unmoved frontier) covers it anyway.
     private var emptyAtFrontier = false
+    /// Tail language detection kicked off during the post-release grace
+    /// window, so it overlaps audio capture instead of serializing after it.
+    private var prefetchedTailLanguage: Task<String, Never>?
+    private var prefetchFrontier = -1
 
     init(model: String, language: String, snapshot: @escaping () -> [Float]) {
         self.model = model
@@ -66,6 +70,25 @@ final class IncrementalTranscriber {
     func cancel() {
         monitor?.cancel()
         monitor = nil
+        prefetchedTailLanguage?.cancel()
+        prefetchedTailLanguage = nil
+    }
+
+    /// Called the moment the user releases the key, while the 200 ms grace
+    /// window is still capturing the last word: stop opening new chunk
+    /// decodes and start detecting the tail's language on the audio so far —
+    /// by the time finish() runs, the answer is usually already there.
+    func prepareFinish() {
+        monitor?.cancel()
+        guard language == "auto", frontier > 0 else { return }
+        let all = snapshot()
+        guard frontier < all.count else { return }
+        let tailSoFar = Array(all[frontier...])
+        guard tailSoFar.count >= Int(AudioRecorder.targetSampleRate * 0.3) else { return }
+        prefetchFrontier = frontier
+        prefetchedTailLanguage = Task {
+            await TranscriptionService.shared.detectLanguageAuto(tailSoFar)
+        }
     }
 
     /// Final assembly after the recording stopped. Returns the full joined
@@ -85,9 +108,17 @@ final class IncrementalTranscriber {
         let tail = Array(fullSamples[min(frontier, fullSamples.count)...])
         if tail.count >= Int(AudioRecorder.targetSampleRate * 0.3) {
             // The tail is post-last-pause, so treat it as single-language.
-            let lang: String? = language == "auto"
-                ? await TranscriptionService.shared.detectLanguageAuto(tail)
-                : language
+            // Use the language prefetched during the grace window when the
+            // frontier hasn't moved since (the last 200 ms of audio won't
+            // change the language verdict).
+            let lang: String?
+            if language != "auto" {
+                lang = language
+            } else if prefetchFrontier == frontier, let prefetched = prefetchedTailLanguage {
+                lang = await prefetched.value
+            } else {
+                lang = await TranscriptionService.shared.detectLanguageAuto(tail)
+            }
             let text = (try? await TranscriptionService.shared.decodeChunk(
                 samples: tail, model: model, language: lang
             )) ?? ""
