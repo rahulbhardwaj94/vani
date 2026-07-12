@@ -320,8 +320,10 @@ final class DictationController {
             text = CommandProcessor.apply(to: text)
         }
         if codeMode {
-            // Symbols first so casing capture stops at the punctuation they
-            // introduce: "camel case user name dot js" → userName.js.
+            // Numbers first ("dash one" needs the digit before dash glues),
+            // then symbols, then casing — whose capture stops at the
+            // punctuation symbols introduce ("…user name dot js" → userName.js).
+            text = NumberWords.apply(to: text)
             text = SymbolCommands.apply(to: text)
             text = CasingCommands.apply(to: text)
         }
