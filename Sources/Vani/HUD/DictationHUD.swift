@@ -11,7 +11,7 @@ final class DictationHUD {
 
     private var panel: NSPanel?
     /// Compact while listening; grows wider to fit the live preview line.
-    private static let compactSize = NSSize(width: 176, height: 46)
+    private static let compactSize = NSSize(width: 236, height: 46)
     private static let previewSize = NSSize(width: 360, height: 50)
 
     func show() {
@@ -154,7 +154,7 @@ private struct MonoGlass: View {
 /// each on its own rhythm, driven louder by the mic level.
 private struct EqualizerBars: View {
     let level: Float
-    private let barCount = 9
+    private let barCount = 23
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
@@ -177,7 +177,7 @@ private struct EqualizerBars: View {
                         .frame(width: 1.6, height: max(3, 34 * bounce * drive))
                 }
             }
-            .frame(width: 38, height: 34)
+            .frame(width: 96, height: 34)
         }
     }
 }
