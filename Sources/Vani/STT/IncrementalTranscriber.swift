@@ -33,11 +33,19 @@ final class IncrementalTranscriber {
     /// Absolute sample index up to which audio has been decoded.
     private var frontier = 0
     private var monitor: Task<Void, Never>?
-    /// Set when anything anomalous happens (a chunk decoded to empty text, a
-    /// decode threw). Correctness beats latency: a degraded run abandons all
-    /// pre-decoded parts and finish() returns nil so the caller re-decodes
-    /// the *entire* buffer on the classic path — words can never be lost.
+    /// Set when anything anomalous happens (a decode threw, or audio decoded
+    /// empty even with added context). Correctness beats latency: a degraded
+    /// run abandons all pre-decoded parts and finish() returns nil so the
+    /// caller re-decodes the *entire* buffer on the classic path — words can
+    /// never be lost.
     private var degraded = false
+    /// The chunk at the current frontier decoded to empty text (a filler or
+    /// breath the model nulled out). Instead of degrading immediately, wait
+    /// for the next closed segment and decode both spans as one chunk — with
+    /// context the model transcribes it, or it truly was silence. Only a
+    /// second empty on the merged span degrades. If recording stops first,
+    /// the tail (which starts at the unmoved frontier) covers it anyway.
+    private var emptyAtFrontier = false
 
     init(model: String, language: String, snapshot: @escaping () -> [Float]) {
         self.model = model
@@ -118,54 +126,65 @@ final class IncrementalTranscriber {
             closed = [(start: 0, end: cut)]
         }
 
-        for seg in closed {
-            guard !Task.isCancelled else { return }
-            if seg.end - seg.start < Int(AudioRecorder.targetSampleRate * 0.5) {
-                // A sub-half-second blip (click, breath) isn't dictation;
-                // Whisper legitimately returns nothing for these, so decode
-                // nothing and don't treat the emptiness as an anomaly.
-                VaniLog.log(String(format: "skip blip %.1f-%.1fs",
-                    Double(frontier + seg.start) / Double(Self.sampleRate),
-                    Double(frontier + seg.end) / Double(Self.sampleRate)))
-                frontier += seg.end
-                return
-            }
-            let chunk = Array(region[seg.start..<min(seg.end, region.count)])
-            let lang: String? = language == "auto"
-                ? await TranscriptionService.shared.detectLanguageAuto(chunk)
-                : language
-            var rms: Float = 0
-            for s in chunk { rms += s * s }
-            rms = (rms / Float(max(chunk.count, 1))).squareRoot()
-            do {
-                let started = Date()
-                let text = try await TranscriptionService.shared.decodeChunk(
-                    samples: chunk, model: model, language: lang
-                )
-                VaniLog.log(String(format: "chunk %.1f-%.1fs [%@] rms %.4f → %d chars in %.2fs",
-                    Double(frontier + seg.start) / Double(Self.sampleRate),
-                    Double(frontier + seg.end) / Double(Self.sampleRate),
-                    lang ?? "auto", rms, text.count, Date().timeIntervalSince(started)))
-                guard !text.isEmpty else {
-                    // The VAD called this voiced audio, yet the decode came
-                    // back empty — something is off (quiet mic tripping
-                    // no-speech thresholds, a model hiccup). Don't guess:
-                    // mark the run degraded so the classic full decode
-                    // replays everything.
+        guard let first = closed.first, !Task.isCancelled else { return }
+
+        let seg: (start: Int, end: Int)
+        if emptyAtFrontier {
+            // Retry the nulled-out span merged with the next closed segment.
+            guard closed.count >= 2 else { return }
+            seg = (start: first.start, end: closed[1].end)
+        } else {
+            seg = first
+        }
+
+        if seg.end - seg.start < Int(AudioRecorder.targetSampleRate * 0.5) {
+            // A sub-half-second blip (click, breath) isn't dictation;
+            // Whisper legitimately returns nothing for these, so decode
+            // nothing and don't treat the emptiness as an anomaly.
+            VaniLog.log(String(format: "skip blip %.1f-%.1fs",
+                Double(frontier + seg.start) / Double(Self.sampleRate),
+                Double(frontier + seg.end) / Double(Self.sampleRate)))
+            frontier += seg.end
+            return
+        }
+        let chunk = Array(region[seg.start..<min(seg.end, region.count)])
+        let lang: String? = language == "auto"
+            ? await TranscriptionService.shared.detectLanguageAuto(chunk)
+            : language
+        var rms: Float = 0
+        for s in chunk { rms += s * s }
+        rms = (rms / Float(max(chunk.count, 1))).squareRoot()
+        do {
+            let started = Date()
+            let text = try await TranscriptionService.shared.decodeChunk(
+                samples: chunk, model: model, language: lang
+            )
+            VaniLog.log(String(format: "chunk %.1f-%.1fs [%@] rms %.4f → %d chars in %.2fs%@",
+                Double(frontier + seg.start) / Double(Self.sampleRate),
+                Double(frontier + seg.end) / Double(Self.sampleRate),
+                lang ?? "auto", rms, text.count, Date().timeIntervalSince(started),
+                emptyAtFrontier ? " (merged retry)" : ""))
+            guard !text.isEmpty else {
+                if emptyAtFrontier {
+                    // Even with the next phrase appended it decoded empty —
+                    // that's no longer explainable as a filler. Replay
+                    // everything classically.
                     degraded = true
-                    return
+                } else {
+                    emptyAtFrontier = true
                 }
-                parts.append(text)
-                frontier += seg.end
-                // Segment indices after the first are relative to the old
-                // frontier; simplest correct move is one chunk per pass and
-                // re-segment next tick from the new frontier.
-                return
-            } catch {
-                VaniLog.log("chunk decode threw: \(error.localizedDescription) → degraded")
-                degraded = true
                 return
             }
+            parts.append(text)
+            frontier += seg.end
+            emptyAtFrontier = false
+            // Segment indices are relative to the old frontier; simplest
+            // correct move is one chunk per pass and re-segment next tick.
+            return
+        } catch {
+            VaniLog.log("chunk decode threw: \(error.localizedDescription) → degraded")
+            degraded = true
+            return
         }
     }
 }
