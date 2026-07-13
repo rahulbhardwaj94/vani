@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/*
+ * Vani design system — five colors, locked.
+ * paper #F6F1E7 · ink #1C1A17 · signal saffron #D9772D · night #14120F · muted #6B655A
+ * Borders are 1.5px ink, never box-shadow. Radii: 28–36px cards, 999px pills.
+ * Dark mode: paper and night swap roles; saffron is constant.
+ */
+
+:root {
+  --paper: #f6f1e7;
+  --ink: #1c1a17;
+  --saffron: #d9772d;
+  --night: #14120f;
+  --muted: #6b655a;
+
+  /* role tokens (swap in dark mode) */
+  --canvas: var(--paper);
+  --canvas-ink: var(--ink);
+  --canvas-muted: var(--muted);
+  --canvas-card: #fffdf8;
+  --contrast-bg: var(--night);
+  --contrast-ink: var(--paper);
+  --contrast-muted: rgba(246, 241, 231, 0.65);
+  --contrast-faint: rgba(246, 241, 231, 0.55);
+  --nav-bg: rgba(246, 241, 231, 0.92);
+  --watermark: rgba(28, 26, 23, 0.045);
+  /* darkened saffron for small text on paper (WCAG AA); pure saffron is fine large */
+  --saffron-text: #a0500e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: var(--night);
+    --canvas-ink: var(--paper);
+    --canvas-muted: #a49c8d;
+    --canvas-card: #1b1815;
+    --contrast-bg: var(--paper);
+    --contrast-ink: var(--ink);
+    --contrast-muted: rgba(28, 26, 23, 0.7);
+    --contrast-faint: rgba(28, 26, 23, 0.6);
+    --nav-bg: rgba(20, 18, 15, 0.92);
+    --watermark: rgba(246, 241, 231, 0.05);
+    --saffron-text: #e08a45;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-saffron: var(--saffron);
+  --color-night: var(--night);
+  --color-muted: var(--muted);
+  --color-canvas: var(--canvas);
+  --color-canvas-ink: var(--canvas-ink);
+  --color-canvas-muted: var(--canvas-muted);
+  --color-canvas-card: var(--canvas-card);
+  --color-contrast-bg: var(--contrast-bg);
+  --color-contrast-ink: var(--contrast-ink);
+  --color-contrast-muted: var(--contrast-muted);
+  --color-contrast-faint: var(--contrast-faint);
+  --color-saffron-text: var(--saffron-text);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-geist);
+  --font-mono: var(--font-geist-mono);
+  --font-hindi: var(--font-devanagari);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--canvas-ink);
+  font-family: var(--font-geist), "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--saffron);
+  color: var(--ink);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Visible focus for keyboard users. Outline, not shadow — elevation stays flat. */
+:focus-visible {
+  outline: 2.5px solid var(--saffron);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@keyframes vaniBar {
+  0%,
+  100% {
+    transform: scaleY(0.18);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes vaniPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes vaniCaret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes vaniBreathe {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scaleY(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.05);
+  }
+}
+
+/* Laminar section: turbulence flows via dash offset; noise words flicker. */
+@keyframes vaniFlow {
+  to {
+    stroke-dashoffset: -240;
+  }
+}
+
+@keyframes vaniNoiseWord {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
