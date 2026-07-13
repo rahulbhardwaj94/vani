@@ -228,6 +228,13 @@ final class IncrementalTranscriber {
             // Segment indices are relative to the old frontier; simplest
             // correct move is one chunk per pass and re-segment next tick.
             return
+        } catch is CancellationError {
+            // Expected when the user stops while a chunk decode is in
+            // flight: finish() cancelled the monitor. The frontier didn't
+            // advance, so the tail decode covers this chunk — the parts
+            // already decoded stay valid. Degrading here would throw away
+            // the incremental win on every mid-chunk release.
+            return
         } catch {
             VaniLog.log("chunk decode threw: \(error.localizedDescription) → degraded")
             degraded = true
