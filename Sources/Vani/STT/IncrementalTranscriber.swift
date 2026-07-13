@@ -191,6 +191,13 @@ final class IncrementalTranscriber {
         let lang: String?
         if language != "auto" {
             lang = language
+        } else if emptyAtFrontier, let lastLanguage {
+            // Merged retry exists to give a nulled-out filler *context* —
+            // and the context's language is the one we were just speaking.
+            // Re-detecting on filler+phrase spans misfires (field log: an
+            // English span tagged [hi], decoded empty, degraded the run).
+            // A genuine switch shows up in the next pause-separated chunk.
+            lang = lastLanguage
         } else if chunk.count < Self.minDetectSeconds.samples, let lastLanguage {
             lang = lastLanguage
         } else {
