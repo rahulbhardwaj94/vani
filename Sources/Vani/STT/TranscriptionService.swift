@@ -25,6 +25,15 @@ actor TranscriptionService {
     private(set) var state: State = .unloaded
     private var whisperKit: WhisperKit?
     private var loadedModel: String?
+    /// Vocabulary terms fed to the decoder as a glossary prompt so they're
+    /// heard right the *first* time ("Vani", not "Bonnie") instead of being
+    /// patched afterwards. Requires the forked WhisperKit (upstream 1.0.0's
+    /// promptTokens returns empty transcripts — see Package.swift).
+    private var biasTerms: [String] = []
+
+    func setBiasTerms(_ terms: [String]) {
+        biasTerms = Array(terms.prefix(40))
+    }
 
     /// Idempotent; safe to call at launch and again before first use.
     func warmUp(model: String) async {
@@ -178,13 +187,19 @@ actor TranscriptionService {
     }
 
     /// One Whisper decode. `language == nil` auto-detects; a code decodes in
-    /// that language.
+    /// that language. The user's vocabulary rides along as a glossary prompt.
     private func decode(_ samples: [Float], language: String?, on whisperKit: WhisperKit) async throws -> String {
+        var prompt: [Int]?
+        if !biasTerms.isEmpty, let tokenizer = whisperKit.tokenizer {
+            let glossary = " Glossary: " + biasTerms.joined(separator: ", ") + "."
+            prompt = Array(tokenizer.encode(text: glossary).suffix(200))
+        }
         let options = DecodingOptions(
             task: .transcribe,
             language: language,
             usePrefillPrompt: true,
-            detectLanguage: language == nil
+            detectLanguage: language == nil,
+            promptTokens: prompt
         )
         let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: options)
         return results.map(\.text).joined(separator: " ")

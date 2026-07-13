@@ -166,6 +166,10 @@ final class DictationController {
             // Whisper mode: 4× input gain (clamped) so near-silent speech in
             // a shared space still clears the VAD and decodes cleanly.
             try recorder.start(gain: SettingsStore.shared.whisperModeEnabled ? 4 : 1)
+            // Refresh the decoder's glossary from the vocabulary so this
+            // dictation is biased toward the user's own words.
+            let terms = VocabularyStore.shared.rules.map(\.replace)
+            Task.detached { await TranscriptionService.shared.setBiasTerms(terms) }
             AppState.shared.status = .recording
             AppState.shared.recordingStartedAt = Date()
             AppState.shared.previewTranscript = nil

@@ -5,7 +5,13 @@ let package = Package(
     name: "Vani",
     platforms: [.macOS(.v14)],
     dependencies: [
-        .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", from: "1.0.0"),
+        // Fork = upstream v1.0.0 + the promptTokens fix from their open
+        // PR #497 (decode loop aborted on EOT sampled during prompt
+        // prefill → empty transcripts, their issue #501). Prompt biasing
+        // (vocabulary → decoder) depends on it. Drop the fork and repin
+        // upstream once the PR merges.
+        .package(url: "https://github.com/rahulbhardwaj94/argmax-oss-swift.git",
+                 revision: "fee9e193168234b15432d89bf5928196c01b1831"),
         // Pinned: 1.16.0+ uses #Preview, which requires Xcode's PreviewsMacros
         // plugin and fails to build with Command Line Tools alone.
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts.git", exact: "1.15.0"),
