@@ -65,7 +65,17 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${fraunces.variable} ${geist.variable} ${geistMono.variable} ${devanagari.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Re-apply a persisted dark choice before first paint so dark
+            visitors never see a paper flash. Light needs no attribute. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("vani-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

@@ -1,4 +1,5 @@
 import { REPO_URL } from "@/lib/github";
+import ThemeToggle from "./ThemeToggle";
 
 type NavProps = {
   stars: string | null;
@@ -18,6 +19,7 @@ export default function Nav({ stars }: NavProps) {
         <span className="font-display text-[19px] tracking-[0.01em]">Vani</span>
       </a>
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <a
           href={REPO_URL}
           className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-canvas-ink px-4 py-[9px] font-mono text-[13px] leading-none transition-colors hover:bg-canvas-ink hover:text-canvas"

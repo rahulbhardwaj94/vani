@@ -30,14 +30,28 @@
 }
 
 /*
- * The paper canvas IS the brand — the site renders light for everyone,
- * regardless of OS theme (owner's call after seeing both). The night
- * palette still exists for the manifesto/install sections. To bring back
- * an automatic dark mode, re-add a prefers-color-scheme block swapping
- * the canvas and contrast role tokens.
+ * The paper canvas IS the brand — the site renders light for everyone
+ * by default, regardless of OS theme (owner's call after seeing both).
+ * Dark is opt-in via the nav toggle, which stamps data-theme="dark" on
+ * <html> (persisted in localStorage, applied pre-paint by a head script).
  */
 :root {
   color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: var(--night);
+  --canvas-ink: var(--paper);
+  --canvas-muted: #a49c8d;
+  --canvas-card: #1b1815;
+  --contrast-bg: var(--paper);
+  --contrast-ink: var(--ink);
+  --contrast-muted: rgba(28, 26, 23, 0.7);
+  --contrast-faint: rgba(28, 26, 23, 0.6);
+  --nav-bg: rgba(20, 18, 15, 0.92);
+  --watermark: rgba(246, 241, 231, 0.05);
+  --saffron-text: #e08a45;
 }
 
 @theme inline {
