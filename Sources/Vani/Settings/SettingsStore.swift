@@ -56,6 +56,9 @@ final class SettingsStore: ObservableObject {
     @Published var contextBoostEnabled: Bool {
         didSet { UserDefaults.standard.set(contextBoostEnabled, forKey: "contextBoostEnabled") }
     }
+    @Published var handsFreeSilenceGuard: Bool {
+        didSet { UserDefaults.standard.set(handsFreeSilenceGuard, forKey: "handsFreeSilenceGuard") }
+    }
     @Published var showDockIcon: Bool {
         didSet {
             UserDefaults.standard.set(showDockIcon, forKey: "showDockIcon")
@@ -92,6 +95,7 @@ final class SettingsStore: ObservableObject {
         codeModeEnabled = defaults.object(forKey: "codeModeEnabled") as? Bool ?? true
         whisperModeEnabled = defaults.object(forKey: "whisperModeEnabled") as? Bool ?? false
         contextBoostEnabled = defaults.object(forKey: "contextBoostEnabled") as? Bool ?? false
+        handsFreeSilenceGuard = defaults.object(forKey: "handsFreeSilenceGuard") as? Bool ?? true
         showDockIcon = defaults.object(forKey: "showDockIcon") as? Bool ?? false
         ollamaModel = defaults.string(forKey: "ollamaModel") ?? "gemma3:1b"
     }

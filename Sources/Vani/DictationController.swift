@@ -27,6 +27,14 @@ final class DictationController {
     /// loses no audio. If no second tap lands, the recording is discarded.
     private var awaitingSecondTap: Task<Void, Never>?
 
+    /// Hot-mic guard (hands-free only): a locked mic that hears this much
+    /// trailing silence stops itself. Push-to-talk needs no guard — the key
+    /// is physically held. Guards against the accidental open mic that
+    /// transcribes a private conversation into whatever field has focus.
+    private let silenceAutoStopSeconds = 30.0
+    private let silenceCheckCadence = 5.0
+    private var silenceMonitor: Task<Void, Never>?
+
     /// The live-preview re-decode loop; runs only while recording.
     private var previewTask: Task<Void, Never>?
     /// Decodes closed chunks in the background during long dictations so
@@ -136,6 +144,8 @@ final class DictationController {
         awaitingSecondTap = nil
         previewTask?.cancel()
         previewTask = nil
+        silenceMonitor?.cancel()
+        silenceMonitor = nil
         incremental?.cancel()
         incremental = nil
         _ = recorder.stop()
@@ -183,8 +193,54 @@ final class DictationController {
             )
             inc.start()
             incremental = inc
+            startSilenceGuard()
         } catch {
             NSLog("Vani: failed to start recording: \(error.localizedDescription)")
+        }
+    }
+
+    /// Watches a hands-free recording for a long run of trailing silence.
+    /// Something was said earlier → stop normally and paste it; the whole
+    /// recording is silent → discard it (an accidental lock has nothing
+    /// worth pasting, and decoding minutes of room tone invites
+    /// hallucinations). Reuses the field-tested adaptive VAD.
+    private func startSilenceGuard() {
+        silenceMonitor = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(self?.silenceCheckCadence ?? 5))
+                guard !Task.isCancelled, let self else { return }
+                guard AppState.shared.status == .recording,
+                      AppState.shared.isHandsFree,
+                      SettingsStore.shared.handsFreeSilenceGuard else { continue }
+
+                let samples = self.recorder.snapshot()
+                let windowSamples = Int(self.silenceAutoStopSeconds * AudioRecorder.targetSampleRate)
+                guard samples.count >= windowSamples else { continue }
+                let tail = Array(samples.suffix(windowSamples))
+                // DSP over ~30 s of floats — cheap, but keep it off the
+                // main actor alongside HUD animation.
+                let tailSpeech = await Task.detached {
+                    TranscriptionService.speechSegments(in: tail)
+                }.value
+                guard tailSpeech.isEmpty, !Task.isCancelled,
+                      AppState.shared.status == .recording else { continue }
+
+                let anySpeech = await Task.detached {
+                    !TranscriptionService.speechSegments(in: samples).isEmpty
+                }.value
+                guard !Task.isCancelled, AppState.shared.status == .recording else { return }
+                if anySpeech {
+                    VaniLog.log(String(format:
+                        "hot-mic guard: %.0fs of silence after speech → auto-stop",
+                        self.silenceAutoStopSeconds))
+                    self.finishRecording()
+                } else {
+                    VaniLog.log("hot-mic guard: nothing but silence → discarded")
+                    self.cancelRecording()
+                    NSSound(named: "Basso")?.play()
+                }
+                return
+            }
         }
     }
 
@@ -242,6 +298,8 @@ final class DictationController {
         awaitingSecondTap = nil
         previewTask?.cancel()
         previewTask = nil
+        silenceMonitor?.cancel()
+        silenceMonitor = nil
         AppState.shared.status = .transcribing
         AppState.shared.recordingStartedAt = nil
         AppState.shared.previewTranscript = nil

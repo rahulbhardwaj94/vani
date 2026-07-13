@@ -61,6 +61,10 @@ struct SettingsView: View {
                 Text("Boosts a near-silent voice 4× at capture, so you can dictate at a murmur in a library or an open office. Turn off for normal speech.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Hands-free: stop after 30 s of silence", isOn: $settings.handsFreeSilenceGuard)
+                Text("A locked mic that hears nothing for 30 seconds stops itself — what you said gets pasted; a recording with no speech at all is discarded. Push-to-talk is unaffected.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Code mode") {
