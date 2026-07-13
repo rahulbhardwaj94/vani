@@ -1,3 +1,4 @@
+import Contact from "@/components/Contact";
 import Fidelity from "@/components/Fidelity";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
@@ -30,6 +31,7 @@ export default async function Home() {
         <HowItWorks />
         <UnderTheHood releaseTag={releaseTag} />
         <WhyLocal />
+        <Contact />
         <Install stars={stars} />
       </main>
       <Footer />
