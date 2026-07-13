@@ -32,6 +32,8 @@ final class DictationController {
     /// Decodes closed chunks in the background during long dictations so
     /// stopping only waits for the tail.
     private var incremental: IncrementalTranscriber?
+    /// Last pasted text + when, for spotting quick re-dictation corrections.
+    private var lastPaste: (text: String, at: Date)?
 
     private init() {}
 
@@ -161,7 +163,9 @@ final class DictationController {
                     AppState.shared.audioLevel = previous * 0.6 + level * 0.4
                 }
             }
-            try recorder.start()
+            // Whisper mode: 4× input gain (clamped) so near-silent speech in
+            // a shared space still clears the VAD and decodes cleanly.
+            try recorder.start(gain: SettingsStore.shared.whisperModeEnabled ? 4 : 1)
             AppState.shared.status = .recording
             AppState.shared.recordingStartedAt = Date()
             AppState.shared.previewTranscript = nil
@@ -327,6 +331,17 @@ final class DictationController {
             text = SymbolCommands.apply(to: text)
             text = CasingCommands.apply(to: text)
         }
+        // Context boost (experimental): snap near-miss words to distinctive
+        // terms from the clipboard and recent dictations — the things
+        // demonstrably on the user's mind. Local only; runs before
+        // vocabulary so explicit rules still win.
+        if settings.contextBoostEnabled {
+            let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
+            let recent = TranscriptStore.shared.entries.prefix(3).map(\.text).joined(separator: " ")
+            let terms = ContextBoost.terms(from: clipboard + " " + recent)
+            text = ContextBoost.correct(text, terms: terms)
+        }
+
         // Snippets expand before vocabulary so corrections also apply inside
         // an expansion's trigger match (not its saved text).
         text = SnippetStore.shared.apply(to: text)
@@ -345,6 +360,16 @@ final class DictationController {
             engine: path,
             correctedWords: TranscriptDiff.correctedWordCount(raw: raw, final: text)
         )
+        // Auto-learning dictionary: a short utterance right after a paste
+        // that nearly repeats part of it is the user re-dictating a mishear
+        // — queue the differing words as a suggested correction.
+        if let last = lastPaste, Date().timeIntervalSince(last.at) < 20 {
+            for pair in CorrectionDetector.candidates(previous: last.text, current: text) {
+                VocabularyStore.shared.suggest(find: pair.heard, replace: pair.expected)
+            }
+        }
+        lastPaste = (text, Date())
+
         _ = await TextInjector.insert(text) // hides the HUD itself at paste time
 
         NSLog("Vani: dictation done in %.2fs — \"%@\"",

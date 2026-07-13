@@ -56,6 +56,13 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Listening") {
+                Toggle("Whisper mode — for quiet or shared spaces", isOn: $settings.whisperModeEnabled)
+                Text("Boosts a near-silent voice 4× at capture, so you can dictate at a murmur in a library or an open office. Turn off for normal speech.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Code mode") {
                 Toggle("Developer-aware dictation in terminals & editors", isOn: $settings.codeModeEnabled)
                 Text("In Terminal, iTerm, VS Code, Cursor, Xcode, JetBrains IDEs and friends: no auto-capitalization, no trailing period, LLM polish off. Spoken casing: \"camel case get user name\" → getUserName (also snake, kebab, pascal, screaming snake). Spoken symbols: \"dash m\" → -m, \"pipe\" → |, \"server dot js\" → server.js, \"open paren\", \"fat arrow\", \"underscore\"…")
@@ -70,6 +77,23 @@ struct SettingsView: View {
                         .help("Small models like gemma3:1b keep latency and memory low. Large models (7B+) are slow next to Whisper on 16 GB.")
                 }
                 Text("Filler words (um, uh) are always removed, even without the LLM. Small models can occasionally drop or swap words — leave this off if exact wording matters.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Experimental") {
+                Toggle("Context boost", isOn: $settings.contextBoostEnabled)
+                Text("Fixes near-miss words using terms from your clipboard and recent dictations (\"cubernetes\" → \"Kubernetes\" if it's on your clipboard). Entirely on-device.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Profile") {
+                HStack {
+                    Button("Export Profile…") { VaniProfile.exportViaPanel() }
+                    Button("Import Profile…") { VaniProfile.importViaPanel() }
+                }
+                Text("Your vocabulary, snippets, and settings as one JSON file you own — move to a new Mac, keep in dotfiles, or sync via iCloud Drive. No account, no cloud.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -24,6 +24,8 @@ final class AudioRecorder {
         var samples: [Float] = []
         var active = true // guarded by `lock`; late tap callbacks bail out
         var configObserver: NSObjectProtocol?
+        /// Input gain (whisper mode boosts quiet speech); applied in the tap.
+        var gain: Float = 1
     }
 
     private var session: Session?
@@ -46,10 +48,11 @@ final class AudioRecorder {
         interleaved: false
     )!
 
-    func start() throws {
+    func start(gain: Float = 1) throws {
         guard session == nil else { return }
 
         let s = Session()
+        s.gain = gain
         // Reserve 10 minutes so hands-free dictations never reallocate the
         // buffer on the real-time audio thread while holding the lock.
         s.samples.reserveCapacity(Int(Self.targetSampleRate) * 600)
@@ -146,6 +149,12 @@ final class AudioRecorder {
             return buffer
         }
         guard error == nil, out.frameLength > 0, let channel = out.floatChannelData?[0] else { return }
+
+        if s.gain != 1 {
+            for i in 0..<Int(out.frameLength) {
+                channel[i] = min(max(channel[i] * s.gain, -1), 1)
+            }
+        }
 
         s.lock.lock()
         guard s.active else {

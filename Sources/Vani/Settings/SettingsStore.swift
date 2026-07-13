@@ -50,6 +50,12 @@ final class SettingsStore: ObservableObject {
     @Published var codeModeEnabled: Bool {
         didSet { UserDefaults.standard.set(codeModeEnabled, forKey: "codeModeEnabled") }
     }
+    @Published var whisperModeEnabled: Bool {
+        didSet { UserDefaults.standard.set(whisperModeEnabled, forKey: "whisperModeEnabled") }
+    }
+    @Published var contextBoostEnabled: Bool {
+        didSet { UserDefaults.standard.set(contextBoostEnabled, forKey: "contextBoostEnabled") }
+    }
     @Published var showDockIcon: Bool {
         didSet {
             UserDefaults.standard.set(showDockIcon, forKey: "showDockIcon")
@@ -84,6 +90,8 @@ final class SettingsStore: ObservableObject {
         spokenCommandsEnabled = defaults.object(forKey: "spokenCommandsEnabled") as? Bool ?? true
         streamingPreview = defaults.object(forKey: "streamingPreview") as? Bool ?? true
         codeModeEnabled = defaults.object(forKey: "codeModeEnabled") as? Bool ?? true
+        whisperModeEnabled = defaults.object(forKey: "whisperModeEnabled") as? Bool ?? false
+        contextBoostEnabled = defaults.object(forKey: "contextBoostEnabled") as? Bool ?? false
         showDockIcon = defaults.object(forKey: "showDockIcon") as? Bool ?? false
         ollamaModel = defaults.string(forKey: "ollamaModel") ?? "gemma3:1b"
     }

@@ -376,6 +376,34 @@ private struct VocabularyTab: View {
             .padding(.horizontal, 10)
             .padding(.bottom, 8)
 
+            if !vocab.suggestions.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Vani noticed you correcting these", systemImage: "sparkles")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    ForEach(vocab.suggestions) { suggestion in
+                        HStack {
+                            Text("heard “\(suggestion.find)”")
+                            Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                            Text(suggestion.replace).bold()
+                            Spacer()
+                            Button("Add") { vocab.accept(suggestion) }
+                            Button {
+                                vocab.dismiss(suggestion)
+                            } label: {
+                                Image(systemName: "xmark")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        .font(.callout)
+                        .padding(6)
+                        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 8)
+            }
+
             if vocab.rules.isEmpty {
                 ContentUnavailableView(
                     "No corrections yet",
