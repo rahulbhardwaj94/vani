@@ -40,7 +40,8 @@ const description =
   "Vani is local voice dictation for macOS. Hold a key, speak, and your exact words appear in whatever app you're typing in — transcribed on your machine, never sent off it.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://vani.rahulbhardwaj.dev"),
+  // Update when the custom domain (vani.rahulbhardwaj.dev) is wired up.
+  metadataBase: new URL("https://vani-topaz.vercel.app"),
   title: "Vani — local dictation for macOS that never rewrites you",
   description,
   openGraph: {
