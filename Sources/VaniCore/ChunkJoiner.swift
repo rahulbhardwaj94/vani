@@ -90,14 +90,25 @@ public enum ChunkJoiner {
 
         // Heuristic 2 — no terminal punctuation on the left, capitalized word
         // on the right: Whisper capitalized the chunk start as an utterance
-        // start. Lowercase it only when the word is provably safe: it appears
-        // lowercased elsewhere in this transcript, or is a common function
-        // word. "I", acronyms, and anything else (possible proper nouns) stay.
+        // start. Lowercase it when the word is provably safe (appears
+        // lowercased elsewhere, or is a function word), or when the left side
+        // demonstrably ends mid-clause — on a connective or discourse adverb
+        // ("…editing but" + "Honestly, …", "…but honestly" + "Accuracy
+        // comes first", both field examples). "I", acronyms, and possible
+        // proper nouns elsewhere stay.
         if let last = prev.last, !".?!,".contains(last), startsCapitalized,
-           firstWord != "I", !firstWord.hasPrefix("I'"), !isAcronym(firstToken),
-           lowercasedElsewhere.contains(firstWord.lowercased())
-               || functionWords.contains(firstWord.lowercased()) {
-            return result + " " + lowercasingFirstWord(of: next, token: firstToken)
+           firstWord != "I", !firstWord.hasPrefix("I'"), !isAcronym(firstToken) {
+            let word = firstWord.lowercased()
+            let prevLast = fragmentWords(of: prev).last.map { strip($0).lowercased() } ?? ""
+            let safeWord = lowercasedElsewhere.contains(word) || functionWords.contains(word)
+            // Only conjunctions/adverbs, not prepositions or articles:
+            // names routinely follow "to"/"with" ("talk to Rahul") but
+            // essentially never a discourse adverb ("honestly Accuracy").
+            let midClause = coordConjunctions.contains(prevLast)
+                || discourseAdverbs.contains(prevLast)
+            if safeWord || midClause {
+                return result + " " + lowercasingFirstWord(of: next, token: firstToken)
+            }
         }
 
         return result + " " + next
@@ -129,6 +140,13 @@ public enum ChunkJoiner {
         // S4: the left side's final sentence fragment is a single word
         // ("Threshold." + "Holds my quiet microphone" from the same example).
         if frag.count == 1 { return true }
+        // S5: the final fragment is two words starting with a hedge —
+        // "Maybe voice." + "Editing but…" (field) is a trailing-off phrase,
+        // not a sentence. "It works." is subject+verb and stays.
+        if frag.count == 2, let first = frag.first,
+           hedgeStarters.contains(strip(first).lowercased()) {
+            return true
+        }
         return false
     }
 
@@ -200,6 +218,26 @@ public enum ChunkJoiner {
     private static let commaSafeContinuations: Set<String> = [
         "but", "and", "or", "so", "nor", "yet", "because", "which", "though",
         "then", "not",
+    ]
+
+    /// A two-word fragment opening with one of these is a trailing-off
+    /// hedge ("maybe voice."), not a sentence.
+    private static let hedgeStarters: Set<String> = [
+        "maybe", "perhaps", "also", "like", "then", "so",
+        "and", "but", "or", "plus", "possibly", "probably",
+    ]
+
+    /// Coordinating conjunctions — a chunk ending on one always continues.
+    private static let coordConjunctions: Set<String> = [
+        "but", "and", "or", "so", "yet", "nor",
+    ]
+
+    /// Discourse adverbs that sit mid-clause before the speaker's point —
+    /// a chunk ending on one guarantees the next chunk continues the clause.
+    private static let discourseAdverbs: Set<String> = [
+        "honestly", "basically", "actually", "really", "probably",
+        "definitely", "obviously", "literally", "seriously", "frankly",
+        "maybe", "perhaps", "usually", "generally", "essentially",
     ]
 
     /// Common English function words that are always safe to lowercase at a

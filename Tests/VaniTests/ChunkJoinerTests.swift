@@ -57,6 +57,21 @@ func chunkJoinerTests() {
     // stays capitalized at an unpunctuated joint.
     expect(ChunkJoiner.join(["talk to", "Rahul about it"]), "talk to Rahul about it")
 
+    // S5: two-word hedge fragment merges (field: voice-editing sample).
+    expect(
+        ChunkJoiner.join(["maybe voice.", "Editing but honestly, accuracy comes first"]),
+        "maybe voice editing but honestly, accuracy comes first"
+    )
+    // Subject+verb two-word sentence still preserved.
+    expect(ChunkJoiner.join(["It works.", "Now the second point"]), "It works. Now the second point")
+
+    // Mid-clause seams: conjunction or discourse adverb on the left
+    // lowercases the capitalized continuation (field examples).
+    expect(ChunkJoiner.join(["editing but", "Honestly, accuracy comes first"]),
+           "editing but honestly, accuracy comes first")
+    expect(ChunkJoiner.join(["but honestly", "Accuracy comes first"]),
+           "but honestly accuracy comes first")
+
     // Devanagari joints are plain space joins, untouched.
     expect(ChunkJoiner.join(["नमस्ते दुनिया।", "यह ठीक है"]), "नमस्ते दुनिया। यह ठीक है")
     expect(ChunkJoiner.join(["and then.", "हिंदी में बोलो"]), "and then. हिंदी में बोलो")
