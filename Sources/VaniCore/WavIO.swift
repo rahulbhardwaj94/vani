@@ -1,18 +1,19 @@
 import Foundation
 
-/// Minimal RIFF/WAVE reader for the harness fixtures: 16 kHz mono 16-bit
-/// PCM (what scripts/gen-fixtures.sh emits via afconvert). Walks the chunk
-/// list properly instead of assuming a 44-byte header.
-enum WavFile {
-    enum Error: Swift.Error, CustomStringConvertible {
+/// Minimal RIFF/WAVE read/write for 16 kHz mono 16-bit PCM — the format
+/// shared by the recorder, the saved-recordings corpus, and the regression
+/// harness fixtures. The reader walks the chunk list properly instead of
+/// assuming a 44-byte header.
+public enum WavIO {
+    public enum Error: Swift.Error, CustomStringConvertible {
         case malformed(String)
-        var description: String {
+        public var description: String {
             if case .malformed(let why) = self { return "malformed wav: \(why)" }
             return "malformed wav"
         }
     }
 
-    static func readMono16k(_ url: URL) throws -> [Float] {
+    public static func readMono16k(_ url: URL) throws -> [Float] {
         let data = try Data(contentsOf: url)
         guard data.count > 44,
               String(data: data[0..<4], encoding: .ascii) == "RIFF",
@@ -51,6 +52,25 @@ enum WavFile {
             }
         }
         return samples
+    }
+
+    /// Writes 16 kHz mono 16-bit PCM. Float samples are clamped to ±1.
+    public static func writeMono16k(_ samples: [Float], to url: URL) throws {
+        var pcm = Data(capacity: samples.count * 2)
+        for s in samples {
+            let v = Int16(max(-1, min(1, s)) * 32767)
+            withUnsafeBytes(of: v.littleEndian) { pcm.append(contentsOf: $0) }
+        }
+        var data = Data()
+        func ascii(_ s: String) { data.append(s.data(using: .ascii)!) }
+        func u32(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { data.append(contentsOf: $0) } }
+        func u16(_ v: UInt16) { withUnsafeBytes(of: v.littleEndian) { data.append(contentsOf: $0) } }
+        ascii("RIFF"); u32(UInt32(36 + pcm.count)); ascii("WAVE")
+        ascii("fmt "); u32(16); u16(1); u16(1)          // PCM, mono
+        u32(16_000); u32(16_000 * 2); u16(2); u16(16)   // rate, bytes/s, align, bits
+        ascii("data"); u32(UInt32(pcm.count))
+        data.append(pcm)
+        try data.write(to: url)
     }
 
     private static func readU32(_ d: Data, _ at: Int) -> UInt32 {

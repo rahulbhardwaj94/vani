@@ -62,6 +62,9 @@ final class SettingsStore: ObservableObject {
     @Published var handsFreeSilenceGuard: Bool {
         didSet { UserDefaults.standard.set(handsFreeSilenceGuard, forKey: "handsFreeSilenceGuard") }
     }
+    @Published var saveRecordingsForTesting: Bool {
+        didSet { UserDefaults.standard.set(saveRecordingsForTesting, forKey: "saveRecordingsForTesting") }
+    }
     @Published var showDockIcon: Bool {
         didSet {
             UserDefaults.standard.set(showDockIcon, forKey: "showDockIcon")
@@ -100,6 +103,7 @@ final class SettingsStore: ObservableObject {
         whisperModeEnabled = defaults.object(forKey: "whisperModeEnabled") as? Bool ?? false
         contextBoostEnabled = defaults.object(forKey: "contextBoostEnabled") as? Bool ?? false
         handsFreeSilenceGuard = defaults.object(forKey: "handsFreeSilenceGuard") as? Bool ?? true
+        saveRecordingsForTesting = defaults.object(forKey: "saveRecordingsForTesting") as? Bool ?? false
         showDockIcon = defaults.object(forKey: "showDockIcon") as? Bool ?? false
         ollamaModel = defaults.string(forKey: "ollamaModel") ?? "gemma3:1b"
     }

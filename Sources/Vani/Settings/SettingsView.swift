@@ -70,6 +70,10 @@ struct SettingsView: View {
                 Text("A locked mic that hears nothing for 30 seconds stops itself — what you said gets pasted; a recording with no speech at all is discarded. Push-to-talk is unaffected.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Save recordings for testing", isOn: $settings.saveRecordingsForTesting)
+                Text("Keeps the audio + transcript of each dictation (last 50) in Application Support/Vani/corpus, entirely on this Mac, so the regression harness can replay your real voice. Correct a .txt file to turn it into ground truth.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Code mode") {

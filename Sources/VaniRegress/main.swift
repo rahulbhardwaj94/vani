@@ -27,9 +27,20 @@ let tolerance = 0.02
 
 struct Score: Codable { var wer: Double; var chars: Int }
 
-let wavs = ((try? FileManager.default.contentsOfDirectory(at: fixturesDir, includingPropertiesForKeys: nil)) ?? [])
-    .filter { $0.pathExtension == "wav" }
-    .sorted { $0.lastPathComponent < $1.lastPathComponent }
+/// The personal corpus: real dictations the app saved (Settings →
+/// Listening → "Save recordings for testing"). Same wav+txt convention;
+/// the .txt starts as the pipeline's output and becomes ground truth the
+/// moment the user hand-corrects it.
+let corpusDir = FileManager.default
+    .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    .appendingPathComponent("Vani/corpus", isDirectory: true)
+
+func wavList(_ dir: URL) -> [URL] {
+    ((try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
+        .filter { $0.pathExtension == "wav" }
+        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+}
+let wavs = wavList(fixturesDir) + wavList(corpusDir)
 
 guard !wavs.isEmpty else {
     print("no fixtures found in fixtures/ — run ./scripts/gen-fixtures.sh first")
@@ -58,7 +69,7 @@ Task {
             continue
         }
         do {
-            let samples = try WavFile.readMono16k(wav)
+            let samples = try WavIO.readMono16k(wav)
             let started = Date()
             let raw = try await TranscriptionService.shared.transcribe(
                 samples: samples, model: model, language: "auto"

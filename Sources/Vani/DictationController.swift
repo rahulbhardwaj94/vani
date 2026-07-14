@@ -340,6 +340,37 @@ final class DictationController {
         }
     }
 
+    /// Writes one dictation into the corpus dir and prunes to the newest 50
+    /// (a 30 s dictation ≈ 1 MB, so the cap keeps this under ~50 MB).
+    private func saveToCorpus(samples: [Float], text: String) {
+        Task.detached(priority: .background) {
+            let dir = FileManager.default
+                .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Vani/corpus", isDirectory: true)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let stamp = ISO8601DateFormatter().string(from: Date())
+                .replacingOccurrences(of: ":", with: "-")
+            let name = "rec-\(stamp)"
+            do {
+                try WavIO.writeMono16k(samples, to: dir.appendingPathComponent("\(name).wav"))
+                try text.write(to: dir.appendingPathComponent("\(name).txt"),
+                               atomically: true, encoding: .utf8)
+            } catch {
+                VaniLog.log("corpus save failed: \(error.localizedDescription)")
+                return
+            }
+            let wavs = ((try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: nil)) ?? [])
+                .filter { $0.pathExtension == "wav" }
+                .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            for old in wavs.dropLast(50) {
+                try? FileManager.default.removeItem(at: old)
+                try? FileManager.default.removeItem(
+                    at: old.deletingPathExtension().appendingPathExtension("txt"))
+            }
+        }
+    }
+
     private func process(samples: [Float]) async {
         let settings = SettingsStore.shared
         let started = Date()
@@ -473,6 +504,14 @@ final class DictationController {
             }
         }
         lastPaste = (text, Date())
+
+        // Personal regression corpus: keep this dictation's audio + output
+        // so the harness can replay the user's real voice. The sidecar
+        // starts as today's pipeline output; hand-correcting it upgrades
+        // the pair to ground truth. Local disk only, capped at 50.
+        if settings.saveRecordingsForTesting {
+            saveToCorpus(samples: samples, text: text)
+        }
 
         _ = await TextInjector.insert(text) // hides the HUD itself at paste time
 

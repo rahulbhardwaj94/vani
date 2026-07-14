@@ -25,6 +25,14 @@ public actor TranscriptionService {
     /// The live-preview model name; the app may override before first use.
     public static var previewModelName = "openai_whisper-small"
 
+    /// Model cache root. WhisperKit's default (~/Documents/huggingface) is
+    /// TCC-protected, which blocks headless runs (the nightly launchd
+    /// harness gets "Operation not permitted" on ~/Documents). Application
+    /// Support needs no permission for any process of this user.
+    public static let modelsBase = FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Vani/models", isDirectory: true)
+
     /// UI hook for model-load progress. The app points this at AppState;
     /// headless harnesses leave it nil. Only the shared instance reports.
     public static var statusSink: (@Sendable (String?) -> Void)?
@@ -58,6 +66,7 @@ public actor TranscriptionService {
             publishState()
             NSLog("Vani: loading Whisper model '%@'…", model)
             let config = WhisperKitConfig(model: model)
+            config.downloadBase = Self.modelsBase
             config.prewarm = true
             state = .loading
             publishState()
