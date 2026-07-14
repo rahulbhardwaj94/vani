@@ -55,6 +55,11 @@ final class IncrementalTranscriber {
     /// their own detection — an English "umm" tagged [hi] decodes to junk.
     private var lastLanguage: String?
     private static let minDetectSeconds = 2.0
+    /// Languages this user actually dictates in. Detections outside this
+    /// set on short audio are treated as language-ID misfires and snapped
+    /// back to the dictation's running language. TODO: derive from a
+    /// user setting when Vani grows beyond English/Hindi users.
+    private static let plausibleLanguages: Set<String> = ["en", "hi"]
 
     init(model: String, language: String, snapshot: @escaping () -> [Float]) {
         self.model = model
@@ -116,7 +121,7 @@ final class IncrementalTranscriber {
             // Use the language prefetched during the grace window when the
             // frontier hasn't moved since (the last 200 ms of audio won't
             // change the language verdict).
-            let lang: String?
+            var lang: String?
             if language != "auto" {
                 lang = language
             } else if tail.count < Self.minDetectSeconds.samples, let lastLanguage {
@@ -127,6 +132,16 @@ final class IncrementalTranscriber {
                 lang = await prefetched.value
             } else {
                 lang = await TranscriptionService.shared.detectLanguageAuto(tail)
+            }
+            // The tail bypasses the chunk-language smoothing, so a short
+            // last phrase can misdetect wildly (field: "a distant third"
+            // → [tr] → "Törd"). A detected language that never appeared in
+            // this dictation and isn't one the user actually speaks is a
+            // misfire — stay in the running language instead.
+            if let detected = lang, let lastLanguage, detected != lastLanguage,
+               !Self.plausibleLanguages.contains(detected) {
+                VaniLog.log("tail language [\(detected)] implausible → [\(lastLanguage)]")
+                lang = lastLanguage
             }
             let text = (try? await TranscriptionService.shared.decodeChunk(
                 samples: tail, model: model, language: lang
@@ -203,7 +218,13 @@ final class IncrementalTranscriber {
         } else if chunk.count < Self.minDetectSeconds.samples, let lastLanguage {
             lang = lastLanguage
         } else {
-            let detected = await TranscriptionService.shared.detectLanguageAuto(chunk)
+            var detected = await TranscriptionService.shared.detectLanguageAuto(chunk)
+            // Same misfire guard as the tail: a language the user doesn't
+            // speak, detected mid-dictation, is noise — stay the course.
+            if !Self.plausibleLanguages.contains(detected), let lastLanguage {
+                VaniLog.log("chunk language [\(detected)] implausible → [\(lastLanguage)]")
+                detected = lastLanguage
+            }
             if chunk.count >= Self.minDetectSeconds.samples { lastLanguage = detected }
             lang = detected
         }

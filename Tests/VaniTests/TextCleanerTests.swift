@@ -9,6 +9,12 @@ func textCleanerTests() {
     expect(TextCleaner.clean("umbrella time"), "Umbrella time")
     expect(TextCleaner.clean("the hummus is good"), "The hummus is good")
 
+    // The "Mmm……" hum goes, including its own trailing dots; real
+    // sentence punctuation around it survives.
+    expect(TextCleaner.clean("every single time Mmm...... without fail"), "Every single time without fail")
+    expect(TextCleaner.clean("it works. Hmm. mostly"), "It works. mostly")
+    expect(TextCleaner.clean("the mm marking stays"), "The mm marking stays")
+
     // Chunk-boundary duplicates collapse.
     expect(TextCleaner.clean("we saw issues. issues. next steps"), "We saw issues. next steps")
 

@@ -3,9 +3,11 @@ import Foundation
 /// Fast, deterministic transcript cleanup. Always runs, LLM or not.
 public enum TextCleaner {
     /// Standalone disfluencies Whisper tends to keep. Word-boundary matched,
-    /// case-insensitive, with any trailing comma/space swallowed.
+    /// case-insensitive. m{3,} catches the "Mmm" hum (field: "Mmm......").
+    /// The filler's own trailing comma/periods/ellipsis are swallowed with
+    /// it — they punctuate the hum, not the sentence.
     private static let fillerPattern = try! NSRegularExpression(
-        pattern: #"(?i)(?<![\w'])(um+|uh+|erm+|hmm+)(?![\w'])[,]?\s*"#
+        pattern: #"(?i)(?<![\w'])(um+|uh+|erm+|hmm+|m{3,})(?![\w'])[.,…]*\s*"#
     )
 
     /// `codeMode`: cleaning for terminals/editors — no auto-capitalization
