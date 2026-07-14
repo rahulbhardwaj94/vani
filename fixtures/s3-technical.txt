@@ -1,0 +1,1 @@
+Vani uses WhisperKit on the neural engine, with SwiftUI for the menu bar and Ollama for cleanup. The incremental transcriber decodes chunks while I speak, and the adaptive VAD threshold handles my quiet microphone. Push the build to GitHub and update the Homebrew cask.

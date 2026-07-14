@@ -100,6 +100,29 @@ public enum TranscriptDiff {
             .reduce(0) { $0 + $1.expected.split(whereSeparator: \.isWhitespace).count }
     }
 
+    /// Word error rate: full token-level edit distance (substitutions +
+    /// insertions + deletions, case/punctuation-folded) over the expected
+    /// word count. 0.0 = perfect; can exceed 1.0 on garbage. The regression
+    /// harness's score.
+    public static func wer(expected: String, heard: String) -> Double {
+        let exp = tokens(of: expected)
+        let hrd = tokens(of: heard)
+        guard !exp.isEmpty else { return hrd.isEmpty ? 0 : 1 }
+        var dp = Array(repeating: Array(repeating: 0, count: exp.count + 1),
+                       count: hrd.count + 1)
+        for i in 0...hrd.count { dp[i][0] = i }
+        for j in 0...exp.count { dp[0][j] = j }
+        for i in 1...hrd.count {
+            for j in 1...exp.count {
+                let same = hrd[i - 1].folded == exp[j - 1].folded
+                dp[i][j] = same
+                    ? dp[i - 1][j - 1]
+                    : 1 + min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1])
+            }
+        }
+        return Double(dp[hrd.count][exp.count]) / Double(exp.count)
+    }
+
     private struct Token {
         let clean: String  // edge punctuation stripped, case preserved
         let folded: String // clean, lowercased + diacritic-insensitive

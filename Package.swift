@@ -25,14 +25,39 @@ let package = Package(
                 .swiftLanguageMode(.v5)
             ]
         ),
+        // The real speech engine (WhisperKit wrapper), shared by the app
+        // and the regression harness so tests exercise production code.
+        .target(
+            name: "VaniSTT",
+            dependencies: [
+                "VaniCore",
+                .product(name: "WhisperKit", package: "argmax-oss-swift"),
+            ],
+            path: "Sources/VaniSTT",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
         .executableTarget(
             name: "Vani",
             dependencies: [
                 "VaniCore",
+                "VaniSTT",
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ],
             path: "Sources/Vani",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
+        ),
+        // Regression harness: runs synthetic + recorded fixtures through the
+        // real engine and text pipeline, scores WER, compares to baseline.
+        // Run via ./scripts/regress.sh.
+        .executableTarget(
+            name: "VaniRegress",
+            dependencies: ["VaniCore", "VaniSTT"],
+            path: "Sources/VaniRegress",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

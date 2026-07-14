@@ -1,5 +1,6 @@
 import Foundation
 import VaniCore
+import VaniSTT
 
 /// Decodes a dictation *while it is being spoken* so that stopping only ever
 /// waits for the tail, not the whole recording.

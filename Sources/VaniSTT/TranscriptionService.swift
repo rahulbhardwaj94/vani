@@ -4,23 +4,30 @@ import VaniCore
 
 /// Owns the WhisperKit pipeline. Loaded once at launch (in the background)
 /// and kept warm so each dictation only pays inference cost.
-actor TranscriptionService {
+public actor TranscriptionService {
     /// The main pipeline: the user's chosen (large-v3-turbo) model, used for
     /// the authoritative final transcript that gets pasted.
-    static let shared = TranscriptionService()
+    public static let shared = TranscriptionService()
 
     /// A second, independent instance running a small/fast model purely for
     /// the live preview. Kept separate so a preview re-decode never blocks the
     /// final pass — releasing the key is never slowed by an in-flight preview.
-    static let preview = TranscriptionService()
+    public static let preview = TranscriptionService()
 
-    enum State: Equatable {
+    public enum State: Equatable {
         case unloaded
         case downloading
         case loading
         case ready
         case failed(String)
     }
+
+    /// The live-preview model name; the app may override before first use.
+    public static var previewModelName = "openai_whisper-small"
+
+    /// UI hook for model-load progress. The app points this at AppState;
+    /// headless harnesses leave it nil. Only the shared instance reports.
+    public static var statusSink: (@Sendable (String?) -> Void)?
 
     private(set) var state: State = .unloaded
     private var whisperKit: WhisperKit?
@@ -31,7 +38,7 @@ actor TranscriptionService {
     /// promptTokens returns empty transcripts — see Package.swift).
     private var biasTerms: [String] = []
 
-    func setBiasTerms(_ terms: [String]) {
+    public func setBiasTerms(_ terms: [String]) {
         // Dedupe (many rules map to the same canonical word — 7 mishear
         // rules all replacing to "Vani" once produced the prompt
         // "Glossary: Vani, Vani, Vani…", and a repeated-token prompt makes
@@ -42,7 +49,7 @@ actor TranscriptionService {
     }
 
     /// Idempotent; safe to call at launch and again before first use.
-    func warmUp(model: String) async {
+    public func warmUp(model: String) async {
         if state == .ready, loadedModel == model { return }
         if state == .downloading || state == .loading { return }
 
@@ -79,14 +86,14 @@ actor TranscriptionService {
         case .failed(let message): "Speech model failed: \(message)"
         case .ready, .unloaded: nil
         }
-        Task { @MainActor in AppState.shared.modelStatus = text }
+        Self.statusSink?(text)
     }
 
     /// Transcribes 16 kHz mono Float32 samples; returns the raw transcript.
     /// `language` is a Whisper code ("hi", "en", ...) or "auto" to detect.
     /// WhisperKit's defaults force English (usePrefillPrompt: true prefills
     /// "en" unless told otherwise), so we must pass options explicitly.
-    func transcribe(samples: [Float], model: String, language: String) async throws -> String {
+    public func transcribe(samples: [Float], model: String, language: String) async throws -> String {
         if state != .ready || loadedModel != model {
             await warmUp(model: model)
         }
@@ -153,20 +160,20 @@ actor TranscriptionService {
     private static func detectLanguageFast(_ samples: [Float], fallback: WhisperKit) async -> String {
         if let lang = await preview.detectLanguage(samples) { return lang }
         Task.detached(priority: .background) {
-            await preview.warmUp(model: SettingsStore.previewModel)
+            await preview.warmUp(model: Self.previewModelName)
         }
         return (try? await fallback.detectLangauge(audioArray: samples).language) ?? "en"
     }
 
     /// Language ID on this instance's model; nil unless loaded and ready.
-    func detectLanguage(_ samples: [Float]) async -> String? {
+    public func detectLanguage(_ samples: [Float]) async -> String? {
         guard state == .ready, let whisperKit else { return nil }
         return try? await whisperKit.detectLangauge(audioArray: samples).language
     }
 
     /// Language ID for the incremental transcriber: small model when ready
     /// (warms it lazily), own model otherwise, "en" as last resort.
-    func detectLanguageAuto(_ samples: [Float]) async -> String {
+    public func detectLanguageAuto(_ samples: [Float]) async -> String {
         guard let whisperKit else { return "en" }
         return await Self.detectLanguageFast(samples, fallback: whisperKit)
     }
@@ -180,7 +187,7 @@ actor TranscriptionService {
     /// filtered specials, and disabled thresholds all fail identically).
     /// Chunks are pause-bounded phrases, so decoding them cold costs a bit
     /// of boundary punctuation, not correctness. Revisit on library upgrade.
-    func decodeChunk(samples: [Float], model: String, language: String?) async throws -> String {
+    public func decodeChunk(samples: [Float], model: String, language: String?) async throws -> String {
         if state != .ready || loadedModel != model {
             await warmUp(model: model)
         }
@@ -216,7 +223,7 @@ actor TranscriptionService {
         // words are not. Retry bare before letting callers treat this as
         // silence and fall back to a full classic re-decode.
         if text.isEmpty, prompt != nil,
-           samples.count > Int(2 * AudioRecorder.targetSampleRate) {
+           samples.count > Int(2 * 16_000) {
             let bare = DecodingOptions(
                 task: .transcribe,
                 language: language,
@@ -237,7 +244,7 @@ actor TranscriptionService {
     /// segment; longer silences split. Tiny blips are dropped. Returns a single
     /// segment (or none) when there's no clear pause to split on — the caller
     /// then decodes the whole clip in one pass.
-    static func speechSegments(in samples: [Float]) -> [(start: Int, end: Int)] {
+    public static func speechSegments(in samples: [Float]) -> [(start: Int, end: Int)] {
         // Threshold adapts to the clip: a fixed 0.02 sat *above* real speech
         // on a quiet mic, so the VAD saw a 40s dictation as near-total
         // silence and the incremental path decoded only stray loud slivers.
@@ -256,7 +263,7 @@ actor TranscriptionService {
     /// returns "" if the model isn't ready or the pass fails — the preview is
     /// disposable, so it must never throw into the UI or hold up the final
     /// pass. Temperature 0 keeps successive partials on a stable prefix.
-    func transcribePreview(samples: [Float], model: String, language: String) async -> String {
+    public func transcribePreview(samples: [Float], model: String, language: String) async -> String {
         guard state == .ready, loadedModel == model, let whisperKit else { return "" }
 
         // temperatureFallbackCount 0 + no timestamps: a preview pass must be

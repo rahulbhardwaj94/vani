@@ -1,5 +1,6 @@
 import AppKit
 import VaniCore
+import VaniSTT
 
 /// Orchestrates the dictation pipeline:
 /// hotkey → record → transcribe → clean → inject, updating AppState throughout.
@@ -46,6 +47,10 @@ final class DictationController {
     private init() {}
 
     func start() {
+        // Model-load progress → menu bar / onboarding row.
+        TranscriptionService.statusSink = { text in
+            Task { @MainActor in AppState.shared.modelStatus = text }
+        }
         // Warm-load Whisper in the background so the first dictation is fast.
         Task.detached(priority: .utility) {
             await TranscriptionService.shared.warmUp(model: SettingsStore.shared.whisperModel)
