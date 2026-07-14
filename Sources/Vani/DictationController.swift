@@ -402,6 +402,14 @@ final class DictationController {
         if settings.hinglishNormalize {
             text = HinglishNormalizer.normalize(text)
         }
+        // Stretched emphasis collapses to the intended word ("Gooooogle" →
+        // "Google") — only when the collapse validates against the system
+        // dictionary or the user's vocabulary, so unknown stretches stay.
+        let vocabWords = Set(VocabularyStore.shared.rules.map { $0.replace.lowercased() })
+        text = Elongation.normalize(text) { word in
+            vocabWords.contains(word)
+                || NSSpellChecker.shared.checkSpelling(of: word, startingAt: 0).location == NSNotFound
+        }
         // The 1B cleanup model helps short dictations (fillers, punctuation)
         // but drops sentences and mangles casing beyond a few sentences —
         // Whisper's own punctuation is already good there, so skip it.
