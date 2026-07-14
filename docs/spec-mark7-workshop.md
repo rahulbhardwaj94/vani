@@ -127,7 +127,7 @@ style       := "camel case"|"snake case"|"kebab case"|"title case"|"uppercase"|"
   selection if one exists (so "select the last sentence" → "make that
   camelCase" chains).
 - Replacements pass through the existing cleanup chain minus auto-caps
-  (vocabulary corrections still apply — "change rb flow to rbFlow" works).
+  (vocabulary corrections still apply — "change waani to Vani" works).
 - **LLM fallback** (off by default, setting "LLM edit fallback"): only when
   the deterministic parse fails *and* Ollama is up. The model is forced into
   the same intent schema (JSON, validated); any anchor it invents that isn't

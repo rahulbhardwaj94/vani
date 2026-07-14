@@ -44,7 +44,7 @@ Your voice never leaves the machine. Ever.
  ✨  Ollama LLM polish (gemma3:1b) ── optional, silent fallback
         │
         ▼
- 📖  Vocabulary corrections ("rb flow" → "rbFlow")
+ 📖  Vocabulary corrections ("waani" → "Vani")
         │
         ▼
  📋  Clipboard-safe paste into the focused app (⌘V, clipboard restored)
