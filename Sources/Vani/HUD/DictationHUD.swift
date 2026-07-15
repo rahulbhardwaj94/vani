@@ -104,9 +104,6 @@ private struct HUDView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     EqualizerBars(level: appState.audioLevel)
-                    // Mic + bars anchor left, timer + lock anchor right;
-                    // the slack lives here instead of inset margins.
-                    Spacer(minLength: 0)
                 }
                 if let startedAt = appState.recordingStartedAt {
                     ElapsedBadge(since: startedAt)
