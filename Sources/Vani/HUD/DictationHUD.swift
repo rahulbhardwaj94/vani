@@ -11,7 +11,7 @@ final class DictationHUD {
 
     private var panel: NSPanel?
     /// Compact while listening; grows wider to fit the live preview line.
-    private static let compactSize = NSSize(width: 221, height: 46)
+    private static let compactSize = NSSize(width: 246, height: 46)
     private static let previewSize = NSSize(width: 360, height: 50)
 
     func show() {
@@ -92,9 +92,7 @@ private struct HUDView: View {
         HStack(spacing: 9) {
             switch appState.status {
             case .recording:
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.85))
+                HaloMic()
                 if let preview = appState.previewTranscript, !preview.isEmpty {
                     // Live partial (behind FeatureFlags.streamingPreview):
                     // most recent words, dimmed to read as provisional.
@@ -182,21 +180,53 @@ private struct EqualizerBars: View {
     }
 }
 
-/// Elapsed recording time in a hairline capsule ("0:07"). Reassures during
+/// Mic icon with a soft white halo breathing behind it — a peripheral
+/// "capture is alive" cue that stays within the HUD's monochrome language.
+private struct HaloMic: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            let breath = 0.5 + 0.5 * sin(time * 2.2)
+            ZStack {
+                Circle()
+                    .fill(.white.opacity(0.10 + 0.14 * breath))
+                    .frame(width: 22 + 5 * breath, height: 22 + 5 * breath)
+                    .blur(radius: 5)
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+            .frame(width: 27, height: 27)
+        }
+    }
+}
+
+/// Elapsed recording time in a hairline capsule ("0:07"), led by a slowly
+/// pulsing red REC dot — the HUD's single drop of color. Reassures during
 /// long hands-free sessions that capture is still running.
 private struct ElapsedBadge: View {
     let since: Date
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let seconds = max(0, Int(context.date.timeIntervalSince(since)))
-            Text(String(format: "%d:%02d", seconds / 60, seconds % 60))
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.7))
-                .padding(.horizontal, 7)
-                .padding(.vertical, 2)
-                .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+        HStack(spacing: 5) {
+            TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
+                let time = context.date.timeIntervalSinceReferenceDate
+                let pulse = 0.5 + 0.5 * sin(time * 2.6)
+                Circle()
+                    .fill(Color(red: 0.91, green: 0.30, blue: 0.29)
+                        .opacity(0.40 + 0.60 * pulse))
+                    .frame(width: 6, height: 6)
+            }
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let seconds = max(0, Int(context.date.timeIntervalSince(since)))
+                Text(String(format: "%d:%02d", seconds / 60, seconds % 60))
+                    .font(.system(size: 11).monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.7))
+            }
         }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
+        .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1))
     }
 }
 
