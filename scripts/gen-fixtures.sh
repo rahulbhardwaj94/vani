@@ -80,6 +80,28 @@ cat > fixtures/s2-nopause.txt <<'TXT'
 Send the invoice tonight, बाक़ी details कल discuss करेंगे।
 TXT
 
+# ---------- script 2c: zero-pause switch + held key ----------
+# Same fused switch, but with 3 s of trailing room tone — the shape of every
+# real tail (key-release grace window + reaction time). Guards the
+# voiced-extent window placement: a scan window sitting on the silence
+# returns a junk verdict and the Hindi half is never seen (field bug).
+say_wav Aman  build/tts/s2h-a.wav "So, send the invoice tonight and"
+for f in s2h-a; do
+  ffmpeg -y -loglevel error -i build/tts/$f.wav \
+    -af "silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse" \
+    -c:a pcm_s16le build/tts/$f-trim.wav
+done
+ffmpeg -y -loglevel error -f lavfi -i anullsrc=r=16000:cl=mono -t 3.0 \
+  -c:a pcm_s16le build/tts/heldkey-silence.wav
+ffmpeg -y -loglevel error \
+  -i build/tts/s2h-a-trim.wav -i build/tts/microgap.wav \
+  -i build/tts/s2-b-trim.wav -i build/tts/heldkey-silence.wav \
+  -filter_complex "concat=n=4:v=0:a=1" -ar 16000 -ac 1 -c:a pcm_s16le \
+  fixtures/s2-heldkey.wav
+cat > fixtures/s2-heldkey.txt <<'TXT'
+So, send the invoice tonight and बाक़ी details कल discuss करेंगे।
+TXT
+
 # ---------- degraded variants of script 1 ----------
 # Quiet mic (the field bug that broke the fixed VAD threshold).
 ffmpeg -y -loglevel error -i fixtures/s1-ramble.wav \

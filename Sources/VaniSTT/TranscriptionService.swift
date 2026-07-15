@@ -248,20 +248,45 @@ public actor TranscriptionService {
     /// callers then keep their existing whole-span behavior.
     public func languageRuns(in samples: [Float]) async -> [CodeSwitchScan.Run]? {
         guard let whisperKit else { return nil }
+        // Scan the voiced extent only. Spans routinely carry room tone at
+        // the edges — the tail *always* ends with the key-release grace
+        // window plus reaction time — and a scan window sitting on silence
+        // returns a junk verdict (field: a 10 s tail with ~4 s of trailing
+        // silence never saw its Hindi half because the tail window heard
+        // only room tone).
+        let segments = Self.speechSegments(in: samples)
+        guard let firstSeg = segments.first, let lastSeg = segments.last,
+              lastSeg.end > firstSeg.start else { return nil }
+        let offset = firstSeg.start
+        let voiced = lastSeg.end - firstSeg.start
+
         let window = Int(Self.scanWindowSeconds * 16_000)
-        return await CodeSwitchScan.runs(
-            totalSamples: samples.count,
+        let runs = await CodeSwitchScan.runs(
+            totalSamples: voiced,
             windowSamples: window,
             detect: { range in
-                let lang = await Self.detectLanguageFast(
-                    Array(samples[range]), fallback: whisperKit
-                )
+                let slice = Array(samples[(range.lowerBound + offset)..<(range.upperBound + offset)])
+                let lang = await Self.detectLanguageFast(slice, fallback: whisperKit)
                 return Self.plausibleLanguages.contains(lang) ? lang : nil
             },
             splitPoint: { interval in
-                SpeechSegmenter.quietestSplit(in: samples, searchRange: interval)
+                SpeechSegmenter.quietestSplit(
+                    in: samples,
+                    searchRange: (interval.lowerBound + offset)..<(interval.upperBound + offset)
+                ) - offset
             }
         )
+        // Map back to the full span: the edge runs absorb the surrounding
+        // room tone so the decode slices tile the entire input.
+        return runs.map { found in
+            found.enumerated().map { index, run in
+                CodeSwitchScan.Run(
+                    start: index == 0 ? 0 : run.start + offset,
+                    end: index == found.count - 1 ? samples.count : run.end + offset,
+                    language: run.language
+                )
+            }
+        }
     }
 
     /// Language ID for the incremental transcriber: small model when ready
