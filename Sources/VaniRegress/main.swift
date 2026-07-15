@@ -50,6 +50,44 @@ guard !wavs.isEmpty else {
 let baseline: [String: Score] = (try? Data(contentsOf: baselineURL))
     .flatMap { try? JSONDecoder().decode([String: Score].self, from: $0) } ?? [:]
 
+// --probe <file.wav>: language-detection diagnostics instead of the harness.
+// Splits the clip on pauses the same way transcribe(language:"auto") does,
+// prints each segment's top language probabilities, and decodes it under
+// en, hi, and auto so code-switch misfires can be seen side by side.
+if let probeIdx = CommandLine.arguments.firstIndex(of: "--probe"),
+   CommandLine.arguments.count > probeIdx + 1 {
+    let wav = URL(fileURLWithPath: CommandLine.arguments[probeIdx + 1])
+    // Optional third token: probe a different model (e.g. openai_whisper-small,
+    // the preview model the app's fast per-segment language ID runs on).
+    let model = CommandLine.arguments.count > probeIdx + 2
+        ? CommandLine.arguments[probeIdx + 2] : model
+    let sem = DispatchSemaphore(value: 0)
+    Task {
+        await TranscriptionService.shared.warmUp(model: model)
+        let samples = try WavIO.readMono16k(wav)
+        let segments = TranscriptionService.speechSegments(in: samples)
+        print("\(segments.count) segments in \(wav.lastPathComponent)")
+        for (i, seg) in segments.enumerated() {
+            let slice = Array(samples[seg.start..<seg.end])
+            print(String(format: "segment %d: %.1f–%.1fs", i,
+                Double(seg.start) / 16_000, Double(seg.end) / 16_000))
+            if let probs = await TranscriptionService.shared.languageProbs(slice) {
+                let top = probs.sorted { $0.value > $1.value }.prefix(4)
+                    .map { String(format: "%@ %.2f", $0.key, $0.value) }
+                print("  probs: " + top.joined(separator: "  "))
+            }
+            for lang in ["en", "hi", nil] {
+                let text = (try? await TranscriptionService.shared.decodeChunk(
+                    samples: slice, model: model, language: lang)) ?? "<error>"
+                print("  [\(lang ?? "auto")] \(text)")
+            }
+        }
+        sem.signal()
+    }
+    sem.wait()
+    exit(0)
+}
+
 print("Vani regression harness — \(wavs.count) fixtures, model \(model)")
 print("loading model…")
 

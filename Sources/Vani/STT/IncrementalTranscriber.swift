@@ -56,11 +56,12 @@ final class IncrementalTranscriber {
     /// their own detection — an English "umm" tagged [hi] decodes to junk.
     private var lastLanguage: String?
     private static let minDetectSeconds = 2.0
-    /// Languages this user actually dictates in. Detections outside this
-    /// set on short audio are treated as language-ID misfires and snapped
-    /// back to the dictation's running language. TODO: derive from a
-    /// user setting when Vani grows beyond English/Hindi users.
-    private static let plausibleLanguages: Set<String> = ["en", "hi"]
+    /// Languages this user actually dictates in — misfire detections outside
+    /// this set snap back to the dictation's running language. Owned by
+    /// TranscriptionService so the code-switch scan shares the same set.
+    private static var plausibleLanguages: Set<String> {
+        TranscriptionService.plausibleLanguages
+    }
 
     init(model: String, language: String, snapshot: @escaping () -> [Float]) {
         self.model = model
@@ -144,19 +145,38 @@ final class IncrementalTranscriber {
                 VaniLog.log("tail language [\(detected)] implausible → [\(lastLanguage)]")
                 lang = lastLanguage
             }
-            let text = (try? await TranscriptionService.shared.decodeChunk(
-                samples: tail, model: model, language: lang
-            )) ?? ""
+            // The tail can hide a zero-pause code-switch just like a chunk —
+            // decoding it under one language would translate or drop half.
+            var tailTexts: [String] = []
+            var tailLabel = lang ?? "auto"
+            if language == "auto", tail.count >= TranscriptionService.minScanSamples,
+               let runs = await TranscriptionService.shared.languageRuns(in: tail),
+               runs.count > 1 {
+                tailLabel = runs.map(\.language).joined(separator: "+")
+                for run in runs {
+                    let slice = Array(tail[run.start..<run.end])
+                    let text = (try? await TranscriptionService.shared.decodeChunk(
+                        samples: slice, model: model, language: run.language
+                    )) ?? ""
+                    if !text.isEmpty { tailTexts.append(text) }
+                }
+            } else {
+                let text = (try? await TranscriptionService.shared.decodeChunk(
+                    samples: tail, model: model, language: lang
+                )) ?? ""
+                if !text.isEmpty { tailTexts.append(text) }
+            }
             VaniLog.log(String(format: "tail %.1fs [%@] → %d chars",
-                Double(tail.count) / Double(Self.sampleRate), lang ?? "auto", text.count))
-            if text.isEmpty {
+                Double(tail.count) / Double(Self.sampleRate), tailLabel,
+                tailTexts.reduce(0) { $0 + $1.count }))
+            if tailTexts.isEmpty {
                 // A silent tail is plausible (trailing room tone), but we
                 // can't tell it apart from a failed decode — replay the
                 // whole buffer classically rather than risk dropped words.
                 VaniLog.log("empty tail → classic full decode")
                 return nil
             }
-            parts.append(text)
+            parts.append(contentsOf: tailTexts)
         }
         VaniLog.log("incremental finish: \(parts.count) parts, frontier \(frontier)")
         // Whisper punctuates each chunk as a complete utterance; repair the
@@ -234,15 +254,36 @@ final class IncrementalTranscriber {
         rms = (rms / Float(max(chunk.count, 1))).squareRoot()
         do {
             let started = Date()
-            let text = try await TranscriptionService.shared.decodeChunk(
-                samples: chunk, model: model, language: lang
-            )
+            // A zero-pause code-switch can hide inside a chunk; decoding it
+            // under the single detected language translates or drops the
+            // other half. Scan, and decode each language run on its own.
+            var texts: [String] = []
+            var label = lang ?? "auto"
+            if language == "auto", chunk.count >= TranscriptionService.minScanSamples,
+               let runs = await TranscriptionService.shared.languageRuns(in: chunk),
+               runs.count > 1 {
+                label = runs.map(\.language).joined(separator: "+")
+                for run in runs {
+                    let slice = Array(chunk[run.start..<run.end])
+                    let text = try await TranscriptionService.shared.decodeChunk(
+                        samples: slice, model: model, language: run.language
+                    )
+                    if !text.isEmpty { texts.append(text) }
+                }
+                if let switched = runs.last?.language { lastLanguage = switched }
+            } else {
+                let text = try await TranscriptionService.shared.decodeChunk(
+                    samples: chunk, model: model, language: lang
+                )
+                if !text.isEmpty { texts.append(text) }
+            }
             VaniLog.log(String(format: "chunk %.1f-%.1fs [%@] rms %.4f → %d chars in %.2fs%@",
                 Double(frontier + seg.start) / Double(Self.sampleRate),
                 Double(frontier + seg.end) / Double(Self.sampleRate),
-                lang ?? "auto", rms, text.count, Date().timeIntervalSince(started),
+                label, rms, texts.reduce(0) { $0 + $1.count },
+                Date().timeIntervalSince(started),
                 emptyAtFrontier ? " (merged retry)" : ""))
-            guard !text.isEmpty else {
+            guard !texts.isEmpty else {
                 if emptyAtFrontier {
                     // Even with the next phrase appended it decoded empty —
                     // that's no longer explainable as a filler. Replay
@@ -253,7 +294,7 @@ final class IncrementalTranscriber {
                 }
                 return
             }
-            parts.append(text)
+            parts.append(contentsOf: texts)
             frontier += seg.end
             emptyAtFrontier = false
             // Segment indices are relative to the old frontier; simplest

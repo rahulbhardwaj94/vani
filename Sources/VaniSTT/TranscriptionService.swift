@@ -25,6 +25,13 @@ public actor TranscriptionService {
     /// The live-preview model name; the app may override before first use.
     public static var previewModelName = "openai_whisper-small"
 
+    /// Languages this user actually dictates in. Detections outside this set
+    /// are language-ID misfires ("a distant third" → [tr] → "Törd"), and the
+    /// zero-pause code-switch scan only trusts window verdicts inside it.
+    /// TODO: derive from a user setting when Vani grows beyond English/Hindi
+    /// users.
+    public static var plausibleLanguages: Set<String> = ["en", "hi"]
+
     /// Model cache root. WhisperKit's default (~/Documents/huggingface) is
     /// TCC-protected, which blocks headless runs (the nightly launchd
     /// harness gets "Operation not permitted" on ~/Documents). Application
@@ -129,6 +136,20 @@ public actor TranscriptionService {
         // stays a single big-model pass.
         let segments = Self.speechSegments(in: samples)
         guard segments.count > 1 else {
+            // One pause-free span. A zero-pause code-switch can still hide
+            // inside it — scan before committing to a single-language decode.
+            if samples.count >= Self.minScanSamples,
+               let runs = await languageRuns(in: samples), runs.count > 1 {
+                NSLog("Vani: zero-pause code-switch in single span → %@",
+                      runs.map(\.language).joined(separator: ","))
+                var parts: [String] = []
+                for run in runs {
+                    let slice = Array(samples[run.start..<run.end])
+                    let text = try await decode(slice, language: run.language, on: whisperKit)
+                    if !text.isEmpty { parts.append(text) }
+                }
+                return parts.joined(separator: " ")
+            }
             return try await decode(samples, language: nil, on: whisperKit)
         }
 
@@ -141,14 +162,36 @@ public actor TranscriptionService {
         // from the nearest long neighbor instead of decoding junk.
         langs = SpeechSegmenter.smoothLanguages(segments: segments, languages: langs)
 
+        // A segment's single verdict can still hide a zero-pause switch
+        // inside it — refine scannable segments into per-language runs.
+        // Runs after smoothing, so a short refined run (a 1.2 s English
+        // opener) can't be smoothed back into its Hindi neighbor.
+        var refined: [(start: Int, end: Int)] = []
+        var refinedLangs: [String] = []
+        for (seg, lang) in zip(segments, langs) {
+            let slice = Array(samples[seg.start..<seg.end])
+            if slice.count >= Self.minScanSamples,
+               let runs = await languageRuns(in: slice), runs.count > 1 {
+                NSLog("Vani: zero-pause code-switch in segment → %@",
+                      runs.map(\.language).joined(separator: ","))
+                for run in runs {
+                    refined.append((start: seg.start + run.start, end: seg.start + run.end))
+                    refinedLangs.append(run.language)
+                }
+            } else {
+                refined.append(seg)
+                refinedLangs.append(lang)
+            }
+        }
+
         // All one language after all: one whole-clip decode keeps it fast and
         // preserves cross-pause context (better punctuation than per-segment).
-        if Set(langs).count <= 1 {
-            return try await decode(samples, language: langs.first, on: whisperKit)
+        if Set(refinedLangs).count <= 1 {
+            return try await decode(samples, language: refinedLangs.first, on: whisperKit)
         }
 
         // Real code-switch: decode each same-language run in its language.
-        let groups = SpeechSegmenter.groupByLanguage(segments: segments, languages: langs)
+        let groups = SpeechSegmenter.groupByLanguage(segments: refined, languages: refinedLangs)
         NSLog("Vani: code-switch — %d segments → %d language runs: %@",
               segments.count, groups.count, groups.map(\.language).joined(separator: ","))
         var parts: [String] = []
@@ -178,6 +221,47 @@ public actor TranscriptionService {
     public func detectLanguage(_ samples: [Float]) async -> String? {
         guard state == .ready, let whisperKit else { return nil }
         return try? await whisperKit.detectLangauge(audioArray: samples).language
+    }
+
+    /// Full language probability distribution on this instance's model;
+    /// nil unless loaded and ready. Used to spot ambiguous code-switch
+    /// segments where the argmax language would make Whisper translate.
+    public func languageProbs(_ samples: [Float]) async -> [String: Float]? {
+        guard state == .ready, let whisperKit else { return nil }
+        return try? await whisperKit.detectLangauge(audioArray: samples).langProbs
+    }
+
+    /// Window length for the zero-pause code-switch scan. Below ~1.5 s a
+    /// window carries too little signal for reliable language ID.
+    private static let scanWindowSeconds = 1.5
+    /// Spans shorter than two windows can't be scanned (head and tail would
+    /// overlap and share the switch region).
+    public static let minScanSamples = Int(scanWindowSeconds * 2 * 16_000)
+
+    /// Find a language switch hiding *inside* a pause-free span. Whisper
+    /// decodes a span under one language token, so a fused "Send the invoice
+    /// tonight बाक़ी details कल discuss करेंगे" loses whichever half the token
+    /// doesn't cover — en *translates* the Hindi, hi *drops* the English
+    /// (both verified against the real engine via VaniRegress --probe).
+    /// Returns the same-language runs to decode separately, or nil when the
+    /// span is monolingual / too short / any window verdict is unusable —
+    /// callers then keep their existing whole-span behavior.
+    public func languageRuns(in samples: [Float]) async -> [CodeSwitchScan.Run]? {
+        guard let whisperKit else { return nil }
+        let window = Int(Self.scanWindowSeconds * 16_000)
+        return await CodeSwitchScan.runs(
+            totalSamples: samples.count,
+            windowSamples: window,
+            detect: { range in
+                let lang = await Self.detectLanguageFast(
+                    Array(samples[range]), fallback: whisperKit
+                )
+                return Self.plausibleLanguages.contains(lang) ? lang : nil
+            },
+            splitPoint: { interval in
+                SpeechSegmenter.quietestSplit(in: samples, searchRange: interval)
+            }
+        )
     }
 
     /// Language ID for the incremental transcriber: small model when ready

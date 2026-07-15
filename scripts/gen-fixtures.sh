@@ -59,6 +59,27 @@ cat > fixtures/s2-hinglish.txt <<'TXT'
 Send the invoice tonight, बाक़ी details कल discuss करेंगे। The meeting is at ten, लेकिन मुझे लगता है वो late आएगा। Ship it now, क्योंकि perfect कभी नहीं होगा।
 TXT
 
+# ---------- script 2b: ZERO-pause code-switch ----------
+# The field bug: fluent Hinglish switches languages mid-breath, so the VAD
+# never splits and one fused segment reaches Whisper — which then translates
+# or drops whichever half its single language token doesn't cover. Trim the
+# TTS parts and join with a 0.12 s gap (below the 0.3 s VAD merge threshold)
+# so they fuse into one segment, exercising the CodeSwitchScan split.
+for f in s2-a s2-b; do
+  ffmpeg -y -loglevel error -i build/tts/$f.wav \
+    -af "silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse" \
+    -c:a pcm_s16le build/tts/$f-trim.wav
+done
+ffmpeg -y -loglevel error -f lavfi -i anullsrc=r=16000:cl=mono -t 0.12 \
+  -c:a pcm_s16le build/tts/microgap.wav
+ffmpeg -y -loglevel error \
+  -i build/tts/s2-a-trim.wav -i build/tts/microgap.wav -i build/tts/s2-b-trim.wav \
+  -filter_complex "concat=n=3:v=0:a=1" -ar 16000 -ac 1 -c:a pcm_s16le \
+  fixtures/s2-nopause.wav
+cat > fixtures/s2-nopause.txt <<'TXT'
+Send the invoice tonight, बाक़ी details कल discuss करेंगे।
+TXT
+
 # ---------- degraded variants of script 1 ----------
 # Quiet mic (the field bug that broke the fixed VAD threshold).
 ffmpeg -y -loglevel error -i fixtures/s1-ramble.wav \
